@@ -1,4 +1,4 @@
-{% extends 'observations/base.html' %}
+{% extends 'base.html' %}
 
 {% block title %}Экспедиции - Система наблюдений{% endblock %}
 
@@ -29,7 +29,7 @@
                     <td>{{ expedition.end_date|date:"d.m.Y H:i" }}</td>
                     <td>{{ expedition.area }}</td>
                     <td>
-                        <a href="{% url 'observations:expedition_detail' expedition.pk %}" 
+                        <a href="{% url 'oceanography:expedition_detail' expedition.pk %}" 
                            class="btn btn-sm btn-outline-primary">Просмотр</a>
                     </td>
                 </tr>

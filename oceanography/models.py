@@ -222,8 +222,6 @@ class NutrientsData(models.Model):
 class PHMeasurement(models.Model):
     """Измерения pH"""
     sample = models.ForeignKey(Sample, on_delete=models.CASCADE, verbose_name="Проба", related_name='ph_measurements')
-    
-    sample = models.ForeignKey(Sample, on_delete=models.CASCADE, verbose_name="Проба")
     ph_meter = models.CharField(max_length=100, verbose_name="Название/модель прибора")
     ph_value = models.DecimalField(max_digits=4, decimal_places=2, verbose_name="Значение pH")
     
