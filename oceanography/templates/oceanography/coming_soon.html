@@ -1,0 +1,22 @@
+<!-- coming_soon.html -->
+{% extends "base.html" %}
+
+{% block title %}Скоро будет | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow">
+                <div class="card-body text-center py-5">
+                    <h1 class="display-4 text-muted">🚧</h1>
+                    <h2 class="text-muted mb-4">Скоро будет</h2>
+                    <p class="lead text-muted">
+                        Раздел находится в разработке. Пожалуйста, зайдите позже.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
