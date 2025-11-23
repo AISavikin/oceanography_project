@@ -80,7 +80,7 @@
                         {% for station in recent_stations %}
                             <a href="#" 
                                class="list-group-item list-group-item-action">
-                                Проба {{ station.sample_id }} - {{ station.station.station_name }}
+                                Станция {{ station.station_id }} - {{ station.station_name }}
                                 <br>
                                 <small class="text-muted">
                                     {{ station.datetime|date:"d.m.Y H:i" }} | 
@@ -90,7 +90,7 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="text-muted">Нет данных о пробах</p>
+                    <p class="text-muted">Нет данных о станциях</p>
                 {% endif %}
                 <a href="#" class="btn btn-outline-primary mt-3">Все станции</a>
             </div>
