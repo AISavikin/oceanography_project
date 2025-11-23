@@ -6,7 +6,6 @@
 {% block content %}
     {% include 'include/_breadcrumbs.html' %}
 
-
     <div class="card mb-4">
         <div class="card-header">
             <h2 class="card-title mb-0">{{ expedition.platform }}</h2>
@@ -53,6 +52,62 @@
         </div>
     </div>
 
+    <!-- Блок кнопок для добавления данных -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title mb-0">Добавить данные</h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-3 col-sm-6">
+                    <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-outline-primary w-100">
+                        📊 Метеоданные
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-outline-primary w-100">
+                        🌿 Данные по углероду
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-outline-primary w-100">
+                        ⚗️ Ионный состав
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-outline-primary w-100">
+                        🎨 Пигменты
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-outline-primary w-100">
+                        💧 Данные оксиметра
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-outline-primary w-100">
+                        🧪 Биогенные элементы
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-outline-primary w-100">
+                        🧬 Измерения pH
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-outline-primary w-100">
+                        📡 Данные CTD
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-outline-primary w-100">
+                        🔍 Зонды
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <h3 class="card-title mb-0">Станции экспедиции</h3>
@@ -69,6 +124,7 @@
                             <th>Глубина дна (м)</th>
                             <th>Прозрачность (м)</th>
                             <th>Количество проб</th>
+                            <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -94,6 +150,12 @@
                             <td>
                                 <span class="badge bg-info">{{ station.samples.count }}</span>
                             </td>
+                            <td>
+                                <a href="{% url 'oceanography:coming_soon' %}" 
+                                   class="btn btn-sm btn-outline-secondary">
+                                    Просмотр проб
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -102,6 +164,9 @@
             {% else %}
             <div class="text-center text-muted py-4">
                 <p>Нет данных о станциях для этой экспедиции</p>
+                <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-primary">
+                    Добавить станции
+                </a>
             </div>
             {% endif %}
         </div>
