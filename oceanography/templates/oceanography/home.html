@@ -50,7 +50,7 @@
                 {% if expeditions %}
                     <div class="list-group">
                         {% for expedition in expeditions %}
-                            <a href="{% url 'oceanography:coming_soon' %}" 
+                            <a href="{% url 'oceanography:expedition_detail' expedition.pk%}" 
                                class="list-group-item list-group-item-action">
                                 {{ expedition.platform }} ({{ expedition.start_date|date:"d.m.Y" }})
                                 <br>
@@ -61,7 +61,7 @@
                 {% else %}
                     <p class="text-muted">Нет данных об экспедициях</p>
                 {% endif %}
-                <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-outline-primary mt-3">Все экспедиции</a>
+                <a href="{% url 'oceanography:expedition_list' %}" class="btn btn-outline-primary mt-3">Все экспедиции</a>
             </div>
         </div>
     </div>
