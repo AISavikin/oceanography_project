@@ -1,0 +1,96 @@
+<!-- oceanography/templates/oceanography/expedition_form.html -->
+{% extends 'base.html' %}
+
+{% block title %}Создание экспедиции - Система наблюдений{% endblock %}
+
+{% block content %}
+    {% include 'include/_breadcrumbs.html' %}
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title mb-0">
+                <i class="fas fa-plus"></i> Создание новой экспедиции
+            </h2>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.platform.label_tag }}
+                            {{ form.platform }}
+                            {% if form.platform.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {% for error in form.platform.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.area.label_tag }}
+                            {{ form.area }}
+                            {% if form.area.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {% for error in form.area.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.start_date.label_tag }}
+                            {{ form.start_date }}
+                            {% if form.start_date.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {% for error in form.start_date.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.end_date.label_tag }}
+                            {{ form.end_date }}
+                            {% if form.end_date.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {% for error in form.end_date.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Создать экспедицию
+                    </button>
+                    <a href="{% url 'oceanography:expedition_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

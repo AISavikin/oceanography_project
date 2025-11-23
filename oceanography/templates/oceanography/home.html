@@ -45,6 +45,9 @@
         <div class="card">
             <div class="card-header">
                 <h5>Последние экспедиции</h5>
+                <a href="{% url 'oceanography:expedition_create' %}" class="btn btn-sm btn-success">
+                    <i class="fas fa-plus"></i> Новая
+                </a>
             </div>
             <div class="card-body">
                 {% if expeditions %}

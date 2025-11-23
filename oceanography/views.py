@@ -1,7 +1,7 @@
-from django.views.generic import TemplateView, ListView, DetailView, FormView
+from django.views.generic import TemplateView, ListView, DetailView, FormView, CreateView
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
-from .forms import StationImportForm
+from .forms import StationImportForm, ExpeditionForm
 from .models import (
     Expedition, Station, Sample, MeteoData, CarbonData, 
     IonicCompositionData, PigmentsData, OxymetrData, 
@@ -51,6 +51,26 @@ class ExpeditionListView(ListView):
         ]
         return context
 
+class ExpeditionCreateView(CreateView):
+    model = Expedition
+    form_class = ExpeditionForm
+    template_name = 'oceanography/expedition_form.html'
+    success_url = reverse_lazy('oceanography:expedition_list')
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Экспедиция "{self.object.platform}" успешно создана!')
+        return response
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:expedition_list'), 'name': 'Экспедиции'},
+            {'url': '', 'name': 'Создание экспедиции'}
+        ]
+        return context
+
 class ExpeditionDetailView(DetailView):
     model = Expedition
     template_name = 'oceanography/expedition_detail.html'
@@ -62,6 +82,13 @@ class ExpeditionDetailView(DetailView):
         
         context['stations'] = expedition.stations.all().prefetch_related('samples')
         context['samples_count'] = Sample.objects.filter(station__expedition=expedition).count()
+        
+        # Расчет длительности в днях
+        if expedition.start_date and expedition.end_date:
+            delta = expedition.end_date - expedition.start_date
+            context['duration_days'] = delta.days
+        else:
+            context['duration_days'] = None
         
         context['breadcrumbs'] = [
             {'url': reverse('oceanography:home'), 'name': 'Главная'},

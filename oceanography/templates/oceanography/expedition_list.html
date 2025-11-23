@@ -10,7 +10,7 @@
         <h1>Экспедиции</h1>
         <div>
             <span class="badge bg-primary fs-6 me-3">Всего: {{ expeditions.count|intcomma }}</span>
-            <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-success">
+            <a href="{% url 'oceanography:expedition_create' %}" class="btn btn-success">
                 ➕ Добавить экспедицию
             </a>
         </div>

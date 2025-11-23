@@ -4,8 +4,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 class Expedition(models.Model):
     """Экспедиции"""
     expedition_id = models.AutoField(primary_key=True)
-    start_date = models.DateTimeField(verbose_name="Дата и время начала экспедиции")
-    end_date = models.DateTimeField(verbose_name="Дата и время окончания экспедиции")
+    start_date = models.DateField(verbose_name="Дата начала экспедиции")
+    end_date = models.DateField(verbose_name="Дата окончания экспедиции")
     platform = models.CharField(max_length=200, verbose_name="Название судна/платформы")
     area = models.CharField(max_length=300, verbose_name="Район работ")
         

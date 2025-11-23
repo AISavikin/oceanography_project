@@ -1,4 +1,5 @@
 from django import forms
+from .models import Expedition, Station
 
 class StationImportForm(forms.Form):
     expedition = forms.ModelChoiceField(
@@ -15,3 +16,20 @@ class StationImportForm(forms.Form):
         label='Данные станций',
         help_text='Каждая строка - отдельная станция. Параметры разделяются пробелами. Рекомендуется использовать загрузку из файла для больших объемов данных.'
     )
+
+class ExpeditionForm(forms.ModelForm):
+    class Meta:
+        model = Expedition
+        fields = ['platform', 'start_date', 'end_date', 'area']
+        widgets = {
+            'platform': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Название судна или платформы'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),            
+            'area': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Район работ'}),
+        }
+        labels = {
+            'platform': 'Название судна/платформы',
+            'start_date': 'Дата и время начала',
+            'end_date': 'Дата и время окончания',
+            'area': 'Район работ',
+        }

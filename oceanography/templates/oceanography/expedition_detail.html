@@ -16,11 +16,11 @@
                     <table class="table table-sm">
                         <tr>
                             <th width="40%">Дата начала:</th>
-                            <td>{{ expedition.start_date|date:"d.m.Y H:i" }}</td>
+                            <td>{{ expedition.start_date|date:"d.m.Y" }}</td>
                         </tr>
                         <tr>
                             <th>Дата окончания:</th>
-                            <td>{{ expedition.end_date|date:"d.m.Y H:i" }}</td>
+                            <td>{{ expedition.end_date|date:"d.m.Y" }}</td>
                         </tr>
                         <tr>
                             <th>Район работ:</th>
@@ -44,7 +44,13 @@
                         </tr>
                         <tr>
                             <th>Длительность:</th>
-                            <td>{{ expedition.end_date|timeuntil:expedition.start_date }}</td>
+                            <td>
+                                {% if duration_days %}
+                                    {{ duration_days }} дней
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
                         </tr>
                     </table>
                 </div>
