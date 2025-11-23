@@ -6,7 +6,7 @@ from .models import (
 )
 
 class ComingSoonView(TemplateView):
-    template_name = 'coming_soon.html'
+    template_name = 'oceanography/coming_soon.html'
 
 class HomeView(ListView):
     model = Expedition

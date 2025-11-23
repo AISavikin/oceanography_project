@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Система наблюдений{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .navbar-brand { font-weight: bold; }
+        .sidebar { background-color: #f8f9fa; }
+        .data-table { font-size: 0.9rem; }
+        .navbar-brand { font-weight: bold; }
+        .sidebar { background-color: #f8f9fa; }
+        .data-table { font-size: 0.9rem; }
+        .breadcrumb { background-color: transparent; padding: 0; }
+        .accordion-button:not(.collapsed) { background-color: #e7f1ff; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">Система наблюдений</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Экспедиции</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Станции</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Пробы</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2 sidebar">
+                <div class="p-3">
+                    <h6>Данные измерений</h6>
+                    <ul class="nav nav-pills flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Метеоданные</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Данные по углероду</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Ионный состав</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Пигменты</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Данные оксиметра</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Биогенные элементы</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Измерения pH</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Данные CTD</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Зонды</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-10">
+                <div class="p-4">
+                    {% block content %}
+                    {% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
