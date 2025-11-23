@@ -1,75 +1,81 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}Экспедиции - Система наблюдений{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Экспедиции</h1>
-</div>
+    {% include 'include/_breadcrumbs.html' %}
 
-{% if expeditions %}
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>ID</th>
-                    <th>Судно/Платформа</th>
-                    <th>Начало</th>
-                    <th>Окончание</th>
-                    <th>Район работ</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for expedition in expeditions %}
-                <tr>
-                    <td>{{ expedition.expedition_id }}</td>
-                    <td>{{ expedition.platform }}</td>
-                    <td>{{ expedition.start_date|date:"d.m.Y H:i" }}</td>
-                    <td>{{ expedition.end_date|date:"d.m.Y H:i" }}</td>
-                    <td>{{ expedition.area }}</td>
-                    <td>
-                        <a href="{% url 'oceanography:expedition_detail' expedition.pk %}" 
-                           class="btn btn-sm btn-outline-primary">Просмотр</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Экспедиции</h1>
+        <span class="badge bg-primary fs-6">Всего: {{ expeditions.count|intcomma }}</span>
     </div>
-    
-    {% if is_paginated %}
-        <nav aria-label="Page navigation">
-            <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover data-table">
+                    <thead>
+                        <tr>
+                            <th>Название судна/платформы</th>
+                            <th>Дата начала</th>
+                            <th>Дата окончания</th>
+                            <th>Район работ</th>
+                            <th>Станций</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expedition in expeditions %}
+                        <tr>
+                            <td>{{ expedition.platform }}</td>
+                            <td>{{ expedition.start_date|date:"d.m.Y" }}</td>
+                            <td>{{ expedition.end_date|date:"d.m.Y" }}</td>
+                            <td>{{ expedition.area }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ expedition.stations.count }}</span>
+                            </td>
+                            <td>
+                                <a href="{% url 'oceanography:expedition_detail' expedition.pk %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    Подробнее
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                Экспедиции не найдены
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav aria-label="Навигация по страницам">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Предыдущая</a>
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Назад</a>
                     </li>
-                {% endif %}
-                
-                {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ num }}</span>
-                        </li>
-                    {% else %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                        </li>
                     {% endif %}
-                {% endfor %}
-                
-                {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Следующая</a>
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
                     </li>
-                {% endif %}
-            </ul>
-        </nav>
-    {% endif %}
-{% else %}
-    <div class="alert alert-info">
-        Нет данных об экспедициях.
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперед</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
     </div>
-{% endif %}
 {% endblock %}
