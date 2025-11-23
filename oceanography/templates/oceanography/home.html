@@ -1,0 +1,99 @@
+{% extends 'observations/base.html' %}
+
+{% block title %}Главная - Система наблюдений{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Система наблюдений</h1>
+        <p class="lead">База данных гидрологических и гидрохимических наблюдений</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Статистика</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h3>{{ expeditions.count }}</h3>
+                        <p class="text-muted">Экспедиций</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3>{{ stations.count }}</h3>
+                        <p class="text-muted">Станций</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3>{{ samples.count }}</h3>
+                        <p class="text-muted">Проб</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3>{{ ctd_data.count }}</h3>
+                        <p class="text-muted">CTD измерений</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Последние экспедиции</h5>
+            </div>
+            <div class="card-body">
+                {% if expeditions %}
+                    <div class="list-group">
+                        {% for expedition in expeditions %}
+                            <a href="{% url 'observations:expedition_detail' expedition.pk %}" 
+                               class="list-group-item list-group-item-action">
+                                {{ expedition.platform }} ({{ expedition.start_date|date:"d.m.Y" }})
+                                <br>
+                                <small class="text-muted">{{ expedition.area }}</small>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Нет данных об экспедициях</p>
+                {% endif %}
+                <a href="{% url 'observations:expedition_list' %}" class="btn btn-outline-primary mt-3">Все экспедиции</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Последние станции</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_stations %}
+                    <div class="list-group">
+                        {% for station in recent_stations %}
+                            <a href="#" 
+                               class="list-group-item list-group-item-action">
+                                Проба {{ station.sample_id }} - {{ station.station.station_name }}
+                                <br>
+                                <small class="text-muted">
+                                    {{ station.datetime|date:"d.m.Y H:i" }} | 
+                                    {{ station.expedition.platform }}
+                                </small>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Нет данных о пробах</p>
+                {% endif %}
+                <a href="#" class="btn btn-outline-primary mt-3">Все станции</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

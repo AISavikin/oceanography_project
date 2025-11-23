@@ -1,0 +1,282 @@
+{% extends 'observations/base.html' %}
+
+{% block title %}Экспедиция {{ expedition.platform }} - Система наблюдений{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'observations:home' %}">Главная</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'observations:expedition_list' %}">Экспедиции</a></li>
+                <li class="breadcrumb-item active">Экспедиция {{ expedition.expedition_id }}</li>
+            </ol>
+        </nav>
+        <h1>Экспедиция: {{ expedition.platform }}</h1>
+        <p class="lead">{{ expedition.area }}</p>
+    </div>
+</div>
+
+<!-- Основная информация об экспедиции -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Информация об экспедиции</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Судно/Платформа:</th>
+                                <td>{{ expedition.platform }}</td>
+                            </tr>
+                            <tr>
+                                <th>Район работ:</th>
+                                <td>{{ expedition.area }}</td>
+                            </tr>
+                            <tr>
+                                <th>Начало:</th>
+                                <td>{{ expedition.start_date|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr>
+                                <th>ID экспедиции:</th>
+                                <td>{{ expedition.expedition_id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Окончание:</th>
+                                <td>{{ expedition.end_date|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Продолжительность:</th>
+                                <td>{{ expedition.start_date|timesince:expedition.end_date }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Статистика</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="row">
+                    <div class="col-6">
+                        <h3>{{ stations.count }}</h3>
+                        <p class="text-muted">Станций</p>
+                    </div>
+                    <div class="col-6">
+                        <h3>{{ samples_count }}</h3>
+                        <p class="text-muted">Проб</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if available_data_types %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6>Типы данных</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-1">
+                    {% for data_type in available_data_types %}
+                        <span class="badge bg-success">{{ data_type }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Список станций и проб -->
+<div class="card">
+    <div class="card-header">
+        <h5>Станции и пробы экспедиции</h5>
+    </div>
+    <div class="card-body">
+        {% if stations %}
+            <div class="accordion" id="stationsAccordion">
+                {% for station in stations %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="stationHeading{{ station.station_id }}">
+                        <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" 
+                                type="button" data-bs-toggle="collapse" 
+                                data-bs-target="#stationCollapse{{ station.station_id }}" 
+                                aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" 
+                                aria-controls="stationCollapse{{ station.station_id }}">
+                            <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                <div>
+                                    <strong>{{ station.station_name }}</strong>
+                                    <span class="badge bg-secondary ms-2">{{ station.sample_set.count }} проб</span>
+                                </div>
+                                <div class="text-muted small">
+                                    {{ station.latitude }}°N, {{ station.longitude }}°E
+                                    {% if station.bottom_depth %}
+                                        | Глубина: {{ station.bottom_depth }} м
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="stationCollapse{{ station.station_id }}" 
+                         class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                         aria-labelledby="stationHeading{{ station.station_id }}" 
+                         data-bs-parent="#stationsAccordion">
+                        <div class="accordion-body">
+                            {% if station.sample_set.all %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID пробы</th>
+                                                <th>Дата и время</th>
+                                                <th>Глубина отбора</th>
+                                                <th>Комментарий</th>
+                                                <th>Данные</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for sample in station.sample_set.all %}
+                                            <tr>
+                                                <td>{{ sample.sample_id }}</td>
+                                                <td>{{ sample.datetime|date:"d.m.Y H:i" }}</td>
+                                                <td>{{ sample.sampling_depth }}</td>
+                                                <td>
+                                                    {% if sample.comment %}
+                                                        <span title="{{ sample.comment }}">
+                                                            {{ sample.comment|truncatechars:30 }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-muted">—</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        {% if sample.meteodata %}
+                                                            <span class="badge bg-info" title="Метеоданные">М</span>
+                                                        {% endif %}
+                                                        {% if sample.carbondata %}
+                                                            <span class="badge bg-info" title="Данные по углероду">У</span>
+                                                        {% endif %}
+                                                        {% if sample.ioniccompositiondata %}
+                                                            <span class="badge bg-info" title="Ионный состав">И</span>
+                                                        {% endif %}
+                                                        {% if sample.pigmentsdata %}
+                                                            <span class="badge bg-info" title="Пигменты">П</span>
+                                                        {% endif %}
+                                                        {% if sample.oxymetrdata %}
+                                                            <span class="badge bg-info" title="Данные оксиметра">О</span>
+                                                        {% endif %}
+                                                        {% if sample.nutrientsdata %}
+                                                            <span class="badge bg-info" title="Биогенные элементы">Б</span>
+                                                        {% endif %}
+                                                        {% if sample.phmeasurement_set.exists %}
+                                                            <span class="badge bg-info" title="Измерения pH">pH</span>
+                                                        {% endif %}
+                                                        {% if sample.ctddata_set.exists %}
+                                                            <span class="badge bg-info" title="Данные CTD">CTD</span>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <a href="{% url 'observations:sample_detail' sample.pk %}" 
+                                                       class="btn btn-sm btn-outline-primary">Подробнее</a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info mb-0">
+                                    Для этой станции нет проб.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                Для этой экспедиции нет станций.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Быстрые ссылки на данные экспедиции -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Быстрый доступ к данным экспедиции</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% if 'Метеоданные' in available_data_types %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'observations:meteo_data_list' %}?expedition={{ expedition.expedition_id }}" 
+                           class="btn btn-outline-primary w-100">Метеоданные</a>
+                    </div>
+                    {% endif %}
+                    {% if 'Данные по углероду' in available_data_types %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'observations:carbon_data_list' %}?expedition={{ expedition.expedition_id }}" 
+                           class="btn btn-outline-primary w-100">Данные по углероду</a>
+                    </div>
+                    {% endif %}
+                    {% if 'Ионный состав' in available_data_types %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'observations:ionic_data_list' %}?expedition={{ expedition.expedition_id }}" 
+                           class="btn btn-outline-primary w-100">Ионный состав</a>
+                    </div>
+                    {% endif %}
+                    {% if 'Пигменты' in available_data_types %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'observations:pigments_data_list' %}?expedition={{ expedition.expedition_id }}" 
+                           class="btn btn-outline-primary w-100">Пигменты</a>
+                    </div>
+                    {% endif %}
+                    {% if 'Данные оксиметра' in available_data_types %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'observations:oxymetr_data_list' %}?expedition={{ expedition.expedition_id }}" 
+                           class="btn btn-outline-primary w-100">Данные оксиметра</a>
+                    </div>
+                    {% endif %}
+                    {% if 'Биогенные элементы' in available_data_types %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'observations:nutrients_data_list' %}?expedition={{ expedition.expedition_id }}" 
+                           class="btn btn-outline-primary w-100">Биогенные элементы</a>
+                    </div>
+                    {% endif %}
+                    {% if 'Измерения pH' in available_data_types %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'observations:ph_measurement_list' %}?expedition={{ expedition.expedition_id }}" 
+                           class="btn btn-outline-primary w-100">Измерения pH</a>
+                    </div>
+                    {% endif %}
+                    {% if 'Данные CTD' in available_data_types %}
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'observations:ctd_data_list' %}?expedition={{ expedition.expedition_id }}" 
+                           class="btn btn-outline-primary w-100">Данные CTD</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
