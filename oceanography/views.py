@@ -1,11 +1,16 @@
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, ListView
+from .models import (
+    Expedition, Station, Sample, MeteoData, CarbonData, 
+    IonicCompositionData, PigmentsData, OxymetrData, 
+    NutrientsData, PHMeasurement, Probe, CTDData
+)
 
 class ComingSoonView(TemplateView):
     template_name = 'coming_soon.html'
 
 class HomeView(ListView):
     model = Expedition
-    template_name = 'observations/home.html'
+    template_name = 'oceanography/home.html'
     context_object_name = 'expeditions'
     
     def get_queryset(self):
