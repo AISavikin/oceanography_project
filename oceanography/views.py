@@ -1,10 +1,13 @@
-from django.views.generic import TemplateView, ListView, DetailView
-from django.urls import reverse
+from django.views.generic import TemplateView, ListView, DetailView, FormView
+from django.urls import reverse, reverse_lazy
+from django.contrib import messages
+from .forms import StationImportForm
 from .models import (
     Expedition, Station, Sample, MeteoData, CarbonData, 
     IonicCompositionData, PigmentsData, OxymetrData, 
     NutrientsData, PHMeasurement, Probe, CTDData
 )
+
 
 class ComingSoonView(TemplateView):
     template_name = 'oceanography/coming_soon.html'
@@ -64,5 +67,64 @@ class ExpeditionDetailView(DetailView):
             {'url': reverse('oceanography:home'), 'name': 'Главная'},
             {'url': reverse('oceanography:expedition_list'), 'name': 'Экспедиции'},
             {'url': '', 'name': f'{expedition.platform} ({expedition.start_date.year})'}
+        ]
+        return context
+
+class StationImportView(FormView):
+    form_class = StationImportForm
+    template_name = 'oceanography/station_import.html'
+    
+    def get_initial(self):
+        initial = super().get_initial()
+        expedition_id = self.kwargs.get('expedition_id')
+        if expedition_id:
+            initial['expedition'] = Expedition.objects.get(pk=expedition_id)
+        return initial
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Устанавливаем queryset для поля expedition
+        form.fields['expedition'].queryset = Expedition.objects.all()
+        return form
+    
+    def form_valid(self, form):
+        # TODO: Реализовать парсинг и сохранение станций
+        messages.info(self.request, 'Функциональность парсинга станций будет реализована в следующем шаге')
+        expedition_id = self.kwargs.get('expedition_id')
+        return redirect('oceanography:expedition_detail', pk=expedition_id)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        expedition_id = self.kwargs.get('expedition_id')
+        if expedition_id:
+            context['expedition'] = Expedition.objects.get(pk=expedition_id)
+        
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:expedition_list'), 'name': 'Экспедиции'},
+            {'url': reverse('oceanography:expedition_detail', kwargs={'pk': expedition_id}), 'name': f'Экспедиция {expedition_id}'},
+            {'url': '', 'name': 'Добавление станций'}
+        ]
+        return context
+
+
+class StationFileImportView(TemplateView):
+    template_name = 'oceanography/station_file_import.html'
+    
+    def get(self, request, *args, **kwargs):
+        messages.info(request, 'Функциональность загрузки из файла будет реализована в следующем шаге')
+        return super().get(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        expedition_id = self.kwargs.get('expedition_id')
+        if expedition_id:
+            context['expedition'] = Expedition.objects.get(pk=expedition_id)
+        
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:expedition_list'), 'name': 'Экспедиции'},
+            {'url': reverse('oceanography:expedition_detail', kwargs={'pk': expedition_id}), 'name': f'Экспедиция {expedition_id}'},
+            {'url': '', 'name': 'Загрузка станций из файла'}
         ]
         return context

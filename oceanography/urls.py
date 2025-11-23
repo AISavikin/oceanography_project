@@ -8,5 +8,7 @@ urlpatterns = [
     path('coming-soon/', ComingSoonView.as_view(), name='coming_soon'),
     path('expeditions/', ExpeditionListView.as_view(), name='expedition_list'),
     path('expeditions/<int:pk>/', ExpeditionDetailView.as_view(), name='expedition_detail'),
+    path('expeditions/<int:expedition_id>/add-stations/', StationImportView.as_view(), name='add_stations'),
+    path('expeditions/<int:expedition_id>/add-stations/file/', StationFileImportView.as_view(), name='add_stations_file'),
 ]
     

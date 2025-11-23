@@ -164,7 +164,7 @@
             {% else %}
             <div class="text-center text-muted py-4">
                 <p>Нет данных о станциях для этой экспедиции</p>
-                <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-primary">
+                <a href="{% url 'oceanography:add_stations' expedition.pk %}" class="btn btn-primary">
                     Добавить станции
                 </a>
             </div>

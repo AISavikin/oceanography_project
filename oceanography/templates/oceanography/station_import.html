@@ -1,0 +1,82 @@
+<!-- oceanography/templates/oceanography/station_import.html -->
+{% extends 'base.html' %}
+
+{% block title %}Добавление станций - Система наблюдений{% endblock %}
+
+{% block content %}
+    {% include 'include/_breadcrumbs.html' %}
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title mb-0">Добавление станций в экспедицию</h2>
+        </div>
+        <div class="card-body">
+            {% if expedition %}
+            <div class="alert alert-info mb-4">
+                <h5>Экспедиция: {{ expedition.platform }}</h5>
+                <p class="mb-0">Дата: {{ expedition.start_date|date:"d.m.Y" }} - {{ expedition.end_date|date:"d.m.Y" }}</p>
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-8">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {{ form.expedition }}
+                        
+                        <div class="mb-3">
+                            {{ form.station_data.label_tag }}
+                            {{ form.station_data }}
+                            {% if form.station_data.help_text %}
+                                <div class="form-text">{{ form.station_data.help_text }}</div>
+                            {% endif %}
+                            {% if form.station_data.errors %}
+                                <div class="alert alert-danger mt-2">
+                                    {{ form.station_data.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Добавить станции
+                            </button>
+                            <a href="{% url 'oceanography:add_stations_file' expedition.pk %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-file-upload"></i> Добавить из файла
+                            </a>
+                            <a href="{% url 'oceanography:expedition_detail' expedition.pk %}" class="btn btn-outline-danger">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Формат данных</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small mb-2">Каждая строка должна содержать:</p>
+                            <code class="d-block small p-2 bg-light rounded mb-2">
+                                название широта долгота [глубина_дна] [прозрачность]
+                            </code>
+                            <p class="small mb-1"><strong>Обязательные поля:</strong></p>
+                            <ul class="small mb-3">
+                                <li>Название станции (строка)</li>
+                                <li>Широта (число, например: 55.123456)</li>
+                                <li>Долгота (число, например: 37.654321)</li>
+                            </ul>
+                            <p class="small mb-1"><strong>Опциональные поля:</strong></p>
+                            <ul class="small">
+                                <li>Глубина дна (м, число)</li>
+                                <li>Прозрачность по Секки (м, число)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

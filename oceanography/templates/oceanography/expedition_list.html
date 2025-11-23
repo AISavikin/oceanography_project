@@ -8,7 +8,12 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Экспедиции</h1>
-        <span class="badge bg-primary fs-6">Всего: {{ expeditions.count|intcomma }}</span>
+        <div>
+            <span class="badge bg-primary fs-6 me-3">Всего: {{ expeditions.count|intcomma }}</span>
+            <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-success">
+                ➕ Добавить экспедицию
+            </a>
+        </div>
     </div>
 
     <div class="card">
