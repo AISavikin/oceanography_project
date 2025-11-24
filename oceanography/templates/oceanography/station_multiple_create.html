@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}Добавление нескольких станций - Система наблюдений{% endblock %}
+
+{% block content %}
+    {% include 'include/_breadcrumbs.html' %}
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title mb-0">
+                <i class="fas fa-layer-group"></i> Добавление нескольких станций
+            </h2>
+        </div>
+        <div class="card-body">
+            {% if expedition %}
+            <div class="alert alert-info mb-4">
+                <h5>Экспедиция: {{ expedition.platform }}</h5>
+                <p class="mb-0">Дата: {{ expedition.start_date|date:"d.m.Y" }} - {{ expedition.end_date|date:"d.m.Y" }}</p>
+            </div>
+            {% endif %}
+
+            <form method="post" id="stations-form">
+                {% csrf_token %}
+                {{ formset.management_form }}
+
+                <div id="stations-forms">
+                    {% for form in formset %}
+                    <div class="station-form card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Станция #<span class="form-number">{{ forloop.counter }}</span></h6>
+                            {% if form.instance.pk %}
+                                {{ form.DELETE }} <label for="{{ form.DELETE.id_for_label }}">Удалить</label>
+                            {% else %}
+                                <button type="button" class="btn btn-sm btn-danger remove-form">× Удалить</button>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.station_name.label_tag }}
+                                        {{ form.station_name }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.datetime.label_tag }}
+                                        {{ form.datetime }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.latitude.label_tag }}
+                                        {{ form.latitude }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.longitude.label_tag }}
+                                        {{ form.longitude }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.bottom_depth.label_tag }}
+                                        {{ form.bottom_depth }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.secchi_depth.label_tag }}
+                                        {{ form.secchi_depth }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex gap-2 mb-4">
+                    <button type="button" id="add-form" class="btn btn-outline-success">
+                        <i class="fas fa-plus"></i> Добавить еще станцию
+                    </button>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Сохранить все станции
+                    </button>
+                    <a href="{% url 'oceanography:add_station_single' expedition.pk %}" class="btn btn-outline-info">
+                        <i class="fas fa-plus-circle"></i> Добавить одну станцию
+                    </a>
+                    <a href="{% url 'oceanography:expedition_detail' expedition.pk %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Пустой шаблон для новых форм -->
+    <div id="empty-form" style="display: none;">
+        <div class="station-form card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Станция #<span class="form-number"></span></h6>
+                <button type="button" class="btn btn-sm btn-danger remove-form">× Удалить</button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ formset.empty_form.station_name.label_tag }}
+                            {{ formset.empty_form.station_name }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ formset.empty_form.datetime.label_tag }}
+                            {{ formset.empty_form.datetime }}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ formset.empty_form.latitude.label_tag }}
+                            {{ formset.empty_form.latitude }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ formset.empty_form.longitude.label_tag }}
+                            {{ formset.empty_form.longitude }}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ formset.empty_form.bottom_depth.label_tag }}
+                            {{ formset.empty_form.bottom_depth }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ formset.empty_form.secchi_depth.label_tag }}
+                            {{ formset.empty_form.secchi_depth }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addButton = document.getElementById('add-form');
+            const totalForms = document.getElementById('id_stations-TOTAL_FORMS');
+            const formsContainer = document.getElementById('stations-forms');
+            const emptyForm = document.getElementById('empty-form').innerHTML;
+
+            let formCount = parseInt(totalForms.value);
+
+            addButton.addEventListener('click', function() {
+                const newForm = emptyForm.replace(/__prefix__/g, formCount);
+                formsContainer.insertAdjacentHTML('beforeend', newForm);
+                
+                // Обновляем номера форм
+                updateFormNumbers();
+                
+                formCount++;
+                totalForms.value = formCount;
+            });
+
+            formsContainer.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-form')) {
+                    e.target.closest('.station-form').remove();
+                    formCount--;
+                    totalForms.value = formCount;
+                    updateFormNumbers();
+                }
+            });
+
+            function updateFormNumbers() {
+                const forms = formsContainer.querySelectorAll('.station-form');
+                forms.forEach((form, index) => {
+                    form.querySelector('.form-number').textContent = index + 1;
+                });
+            }
+
+            updateFormNumbers();
+        });
+    </script>
+{% endblock %}

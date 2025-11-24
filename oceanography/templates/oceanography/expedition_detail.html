@@ -57,7 +57,17 @@
             </div>
         </div>
     </div>
-
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Управление станциями</h3>
+        <div class="btn-group">
+            <a href="{% url 'oceanography:add_station_single' expedition.pk %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Добавить одну станцию
+            </a>
+            <a href="{% url 'oceanography:add_station_multiple' expedition.pk %}" class="btn btn-outline-success">
+                <i class="fas fa-layer-group"></i> Массовое добавление
+            </a>
+        </div>
+    </div>
     <!-- Блок кнопок для добавления данных -->
     <div class="card mb-4">
         <div class="card-header">
@@ -114,6 +124,7 @@
         </div>
     </div>
 
+
     <div class="card">
         <div class="card-header">
             <h3 class="card-title mb-0">Станции экспедиции</h3>
@@ -127,6 +138,7 @@
                             <th>Название станции</th>
                             <th>Широта</th>
                             <th>Долгота</th>
+                            <th>Дата и время</th>
                             <th>Глубина дна (м)</th>
                             <th>Прозрачность (м)</th>
                             <th>Количество проб</th>
@@ -137,6 +149,7 @@
                         {% for station in stations %}
                         <tr>
                             <td>{{ station.station_name }}</td>
+                            <td>{{ station.datetime|date:"d.m.Y H:i" }}</td>
                             <td>{{ station.latitude|floatformat:4 }}</td>
                             <td>{{ station.longitude|floatformat:4 }}</td>
                             <td>
@@ -170,9 +183,14 @@
             {% else %}
             <div class="text-center text-muted py-4">
                 <p>Нет данных о станциях для этой экспедиции</p>
-                <a href="{% url 'oceanography:add_stations' expedition.pk %}" class="btn btn-primary">
-                    Добавить станции
-                </a>
+                <div class="btn-group mt-3">
+                    <a href="{% url 'oceanography:add_station_single' expedition.pk %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Добавить одну станцию
+                    </a>
+                    <a href="{% url 'oceanography:add_station_multiple' expedition.pk %}" class="btn btn-outline-primary">
+                        <i class="fas fa-layer-group"></i> Массовое добавление
+                    </a>
+                </div>
             </div>
             {% endif %}
         </div>

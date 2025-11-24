@@ -28,6 +28,7 @@ class Station(models.Model):
     station_id = models.AutoField(primary_key=True)
     expedition = models.ForeignKey(Expedition, on_delete=models.CASCADE, verbose_name="Экспедиция", related_name='stations')
     station_name = models.CharField(max_length=200, verbose_name="Название станции")
+    datetime = models.DateTimeField(verbose_name="Дата и время станции")  # НОВОЕ ПОЛЕ
     latitude = models.DecimalField(max_digits=9, decimal_places=6, verbose_name="Широта")
     longitude = models.DecimalField(max_digits=9, decimal_places=6, verbose_name="Долгота")
     bottom_depth = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="Глубина дна (м)")
@@ -38,14 +39,15 @@ class Station(models.Model):
         verbose_name = "Станция"
         verbose_name_plural = "Станции"
         indexes = [
-            models.Index(fields=['expedition', 'station_name']),
+            models.Index(fields=['expedition', 'datetime']),
             models.Index(fields=['latitude', 'longitude']),
+            models.Index(fields=['datetime']),
         ]
-        unique_together = ['expedition', 'station_name']
-        ordering = ['expedition', 'station_name']
+        unique_together = ['expedition', 'datetime']  
+        ordering = ['expedition', 'datetime']
     
     def __str__(self):
-        return f"{self.station_name}"
+        return f"{self.station_name} ({self.datetime.date()})"
 
 class Sample(models.Model):
     """Пробы - основная связующая сущность"""
@@ -82,7 +84,7 @@ class MeteoData(models.Model):
     t_air_c = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, verbose_name="Температура воздуха (°C)")
     humidity_percent = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True, verbose_name="Влажность (%)")
     wind_speed_m_s = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, verbose_name="Скорость ветра (м/с)")
-    wind_direction = models.CharField(max_length=10, null=True, blank=True, verbose_name="Направление ветра")
+    wind_direction = models.IntegerField(null=True, blank=True, verbose_name="Направление ветра")
     pressure_hpa = models.DecimalField(max_digits=6, decimal_places=1, null=True, blank=True, verbose_name="Атмосферное давление (гПа)")
     
     class Meta:

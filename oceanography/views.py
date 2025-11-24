@@ -1,8 +1,9 @@
-from django.views.generic import TemplateView, ListView, DetailView, FormView, CreateView
+from django.views.generic import TemplateView, ListView, DetailView, FormView, CreateView, View
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
-from django.shortcuts import render, redirect
-from .forms import StationImportForm, ExpeditionForm
+from django.shortcuts import render, redirect, get_object_or_404
+from django.forms import formset_factory
+from .forms import StationForm, ExpeditionForm, StationFormSet
 from .models import (
     Expedition, Station, Sample, MeteoData, CarbonData, 
     IonicCompositionData, PigmentsData, OxymetrData, 
@@ -98,174 +99,133 @@ class ExpeditionDetailView(DetailView):
         ]
         return context
 
-class StationImportView(FormView):
-    form_class = StationImportForm
-    template_name = 'oceanography/station_import.html'
-    
-    def get_initial(self):
-        initial = super().get_initial()
-        expedition_id = self.kwargs.get('expedition_id')
-        if expedition_id:
-            initial['expedition'] = Expedition.objects.get(pk=expedition_id)
-        return initial
-    
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields['expedition'].queryset = Expedition.objects.all()
-        return form
-    
-    def parse_station_data(self, text_data, expedition):
-        """
-        Парсит текстовые данные станций и возвращает результат
-        Обрабатывает как точки, так и запятые в десятичных числах
-        """
-        def parse_number(value_str):
-            """Парсит число, заменяя запятые на точки"""
-            if not value_str:
-                return None
-            normalized = value_str.replace(',', '.').strip()
-            try:
-                return float(normalized)
-            except ValueError:
-                return None
+from django.views.generic import CreateView
+from .forms import StationForm
 
-        lines = text_data.strip().split('\n')
-        results = {
-            'success': [],
-            'errors': [],
-            'total_lines': len(lines)
-        }
-        
-        for line_num, line in enumerate(lines, 1):
-            line = line.strip()
-            if not line:
-                continue
-                
-            try:
-                parts = line.split()
-                
-                if len(parts) < 3:
-                    station_preview = parts[0] if parts else "пустая строка"
-                    results['errors'].append(
-                        f"Ошибка в строке {line_num}: '{station_preview}' - недостаточно параметров (нужно минимум 3)"
-                    )
-                    continue
-                    
-                station_name = parts[0]
-                
-                latitude = parse_number(parts[1])
-                longitude = parse_number(parts[2])
-                
-                if latitude is None or longitude is None:
-                    results['errors'].append(
-                        f"Ошибка в строке {line_num}: '{station_name}' - неверный формат координат"
-                    )
-                    continue
-                
-                if not (-90 <= latitude <= 90):
-                    results['errors'].append(
-                        f"Ошибка в строке {line_num}: '{station_name}' - широта должна быть между -90 и 90"
-                    )
-                    continue
-                    
-                if not (-180 <= longitude <= 180):
-                    results['errors'].append(
-                        f"Ошибка в строке {line_num}: '{station_name}' - долгота должна быть между -180 и 180"
-                    )
-                    continue
-                
-                bottom_depth = None
-                secchi_depth = None
-                
-                if len(parts) >= 4:
-                    bottom_depth = parse_number(parts[3])
-                    if bottom_depth is None:
-                        results['errors'].append(
-                            f"Ошибка в строке {line_num}: '{station_name}' - неверный формат глубины дна"
-                        )
-                        continue
-                        
-                if len(parts) >= 5:
-                    secchi_depth = parse_number(parts[4])
-                    if secchi_depth is None:
-                        results['errors'].append(
-                            f"Ошибка в строке {line_num}: '{station_name}' - неверный формат прозрачности Секки"
-                        )
-                        continue
-                
-                if Station.objects.filter(expedition=expedition, station_name=station_name).exists():
-                    results['errors'].append(
-                        f"Ошибка в строке {line_num}: '{station_name}' - станция с таким названием уже существует в этой экспедиции"
-                    )
-                    continue
-                
-                station_data = {
-                    'station_name': station_name,
-                    'latitude': latitude,
-                    'longitude': longitude,
-                    'bottom_depth': bottom_depth,
-                    'secchi_depth': secchi_depth,
-                    'line_number': line_num
-                }
-                
-                results['success'].append(station_data)
-                
-            except Exception as e:
-                station_preview = parts[0] if 'parts' in locals() and parts else "неизвестная станция"
-                results['errors'].append(
-                    f"Ошибка в строке {line_num}: '{station_preview}' - непредвиденная ошибка: {str(e)}"
-                )
-        
-        return results
+class StationSingleCreateView(CreateView):
+    """Вариант 1: Форма для добавления одной станции"""
+    model = Station
+    form_class = StationForm
+    template_name = 'oceanography/station_single_create.html'
     
     def form_valid(self, form):
-        expedition = form.cleaned_data['expedition']
-        station_data = form.cleaned_data['station_data']
+        expedition_id = self.kwargs.get('expedition_id')
+        form.instance.expedition_id = expedition_id
         
-        parse_results = self.parse_station_data(station_data, expedition)
-        
-        # Если есть ошибки - остаемся на странице и показываем их
-        if parse_results['errors']:
-            for error in parse_results['errors']:
-                messages.error(self.request, error)
-            
-            # Добавляем форму в контекст с ошибками
-            return self.render_to_response(self.get_context_data(form=form))
-        
-        # Если ошибок нет - показываем успешное сообщение
-        else:
-            messages.success(
-                self.request, 
-                f"Успешно обработано {len(parse_results['success'])} станций. "
-                f"Данные готовы к сохранению (функция сохранения будет реализована в следующем шаге)."
+        # Проверка уникальности даты/времени станции в экспедиции
+        if Station.objects.filter(
+            expedition_id=expedition_id, 
+            datetime=form.instance.datetime
+        ).exists():
+            form.add_error(
+                'datetime', 
+                f'Станция с датой/временем "{form.instance.datetime}" уже существует в этой экспедиции'
             )
-            
-            # ВРЕМЕННО: не сохраняем в БД, только показываем успех
-            # TODO: Реализовать сохранение на следующем этапе
-            
-            expedition_id = self.kwargs.get('expedition_id')
-            return redirect('oceanography:expedition_detail', pk=expedition_id)
+            return self.form_invalid(form)
+        
+        response = super().form_valid(form)
+        messages.success(self.request, f'Станция "{form.instance.station_name}" успешно добавлена!')
+        return response
+    
+    def get_success_url(self):
+        expedition_id = self.kwargs.get('expedition_id')
+        return reverse('oceanography:expedition_detail', kwargs={'pk': expedition_id})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         expedition_id = self.kwargs.get('expedition_id')
         
-        # Всегда получаем экспедицию, даже при ошибках
-        if expedition_id:
-            try:
-                context['expedition'] = Expedition.objects.get(pk=expedition_id)
-            except Expedition.DoesNotExist:
-                context['expedition'] = None
+        try:
+            context['expedition'] = Expedition.objects.get(pk=expedition_id)
+        except Expedition.DoesNotExist:
+            context['expedition'] = None
         
         context['breadcrumbs'] = [
             {'url': reverse('oceanography:home'), 'name': 'Главная'},
             {'url': reverse('oceanography:expedition_list'), 'name': 'Экспедиции'},
             {'url': reverse('oceanography:expedition_detail', kwargs={'pk': expedition_id}), 
              'name': f'Экспедиция {expedition_id}'},
-            {'url': '', 'name': 'Добавление станций'}
+            {'url': '', 'name': 'Добавление станции'}
         ]
         return context
 
+class StationMultipleCreateView(View):
+    """Вариант 2: Форма с динамическим добавлением полей для нескольких станций"""
+    template_name = 'oceanography/station_multiple_create.html'
+    
+    def get(self, request, *args, **kwargs):
+        expedition_id = self.kwargs.get('expedition_id')
+        expedition = get_object_or_404(Expedition, pk=expedition_id)
+        
+        # Создаем formset с одной дополнительной формой
+        StationFormSet = formset_factory(StationForm, extra=1, can_delete=True)
+        formset = StationFormSet(prefix='stations')
+        
+        context = self.get_context_data(formset=formset, expedition=expedition)
+        return render(request, self.template_name, context)
+    
+    def post(self, request, *args, **kwargs):
+        expedition_id = self.kwargs.get('expedition_id')
+        expedition = get_object_or_404(Expedition, pk=expedition_id)
+        
+        StationFormSet = formset_factory(StationForm, extra=0, can_delete=True)
+        formset = StationFormSet(request.POST, prefix='stations')
+        
+        if formset.is_valid():
+            stations_created = 0
+            errors = []
+            
+            for i, form in enumerate(formset):
+                # Пропускаем удаленные формы
+                if form.cleaned_data.get('DELETE', False):
+                    continue
+                    
+                if form.is_valid() and form.has_changed():
+                    station = form.save(commit=False)
+                    station.expedition = expedition
+                    
+                    # Проверка уникальности даты/времени
+                    if Station.objects.filter(expedition=expedition, datetime=station.datetime).exists():
+                        errors.append(f"Станция {i+1}: станция с датой/временем '{station.datetime}' уже существует")
+                        continue
+                    
+                    try:
+                        station.save()
+                        stations_created += 1
+                    except Exception as e:
+                        errors.append(f"Станция {i+1}: ошибка сохранения - {str(e)}")
+            
+            if errors:
+                for error in errors:
+                    messages.error(request, error)
+                context = self.get_context_data(formset=formset, expedition=expedition)
+                return render(request, self.template_name, context)
+            
+            if stations_created > 0:
+                messages.success(request, f'Успешно добавлено {stations_created} станций!')
+            else:
+                messages.warning(request, 'Не было добавлено ни одной станции')
+                
+            return redirect('oceanography:expedition_detail', pk=expedition_id)
+        
+        else:
+            messages.error(request, 'Пожалуйста, исправьте ошибки в форме')
+            context = self.get_context_data(formset=formset, expedition=expedition)
+            return render(request, self.template_name, context)
+    
+    def get_context_data(self, **kwargs):
+        context = kwargs
+        expedition_id = self.kwargs.get('expedition_id')
+        expedition = get_object_or_404(Expedition, pk=expedition_id)
+        
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:expedition_list'), 'name': 'Экспедиции'},
+            {'url': reverse('oceanography:expedition_detail', kwargs={'pk': expedition_id}), 
+             'name': f'Экспедиция {expedition_id}'},
+            {'url': '', 'name': 'Добавление нескольких станций'}
+        ]
+        return context
 
 class StationFileImportView(TemplateView):
     template_name = 'oceanography/station_file_import.html'
