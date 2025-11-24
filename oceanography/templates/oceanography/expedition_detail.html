@@ -3,6 +3,66 @@
 
 {% block title %}{{ expedition.platform }} - Система наблюдений{% endblock %}
 
+{% block extra_head %}
+<!-- Подключение Leaflet для карт -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet MarkerCluster -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<style>
+    /* Основные стили карты */
+    #expedition-map {
+        height: 500px;
+        width: 100%;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+
+    /* Кастомные маркеры */
+    .custom-marker {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        background-color: #2a9d8f;
+    }
+
+    .custom-marker.with-samples {
+        background-color: #e76f51;
+    }
+
+    .custom-marker.with-ctd {
+        background-color: #f4a261;
+    }
+
+    /* Подписи станций */
+    .station-label {
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #2b2d42;
+        border: 1px solid rgba(42, 157, 143, 0.3);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        white-space: nowrap;
+        pointer-events: none;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        #expedition-map {
+            height: 400px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
     {% include 'include/_breadcrumbs.html' %}
 
@@ -57,6 +117,20 @@
             </div>
         </div>
     </div>
+
+    <!-- Карта экспедиции -->
+    {% if stations %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title mb-0">Карта станций экспедиции</h3>
+            <small class="text-muted">Показаны все {{ stations.count }} станций экспедиции</small>
+        </div>
+        <div class="card-body p-0">
+            <div id="expedition-map"></div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Управление станциями</h3>
         <div class="btn-group">
@@ -68,6 +142,7 @@
             </a>
         </div>
     </div>
+
     <!-- Блок кнопок для добавления данных -->
     <div class="card mb-4">
         <div class="card-header">
@@ -124,7 +199,6 @@
         </div>
     </div>
 
-
     <div class="card">
         <div class="card-header">
             <h3 class="card-title mb-0">Станции экспедиции</h3>
@@ -149,9 +223,9 @@
                         {% for station in stations %}
                         <tr>
                             <td>{{ station.station_name }}</td>
-                            <td>{{ station.datetime|date:"d.m.Y H:i" }}</td>
                             <td>{{ station.latitude|floatformat:4 }}</td>
                             <td>{{ station.longitude|floatformat:4 }}</td>
+                            <td>{{ station.datetime|date:"d.m.Y H:i" }}</td>
                             <td>
                                 {% if station.bottom_depth %}
                                     {{ station.bottom_depth|floatformat:1 }}
@@ -195,4 +269,181 @@
             {% endif %}
         </div>
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Создаем карту только если есть станции
+    {% if stations %}
+        // Данные станций из модели
+        const stations = [
+            {% for station in stations %}
+                {
+                    id: {{ station.station_id }},
+                    name: "{{ station.station_name|escapejs }}",
+                    lat: {{ station.latitude|stringformat:"f" }},
+                    lng: {{ station.longitude|stringformat:"f" }},
+                    datetime: "{{ station.datetime|date:'d.m.Y H:i' }}",
+                    bottom_depth: {% if station.bottom_depth %}{{ station.bottom_depth|stringformat:"f" }}{% else %}null{% endif %},
+                    secchi_depth: {% if station.secchi_depth %}{{ station.secchi_depth|stringformat:"f" }}{% else %}null{% endif %},
+                    samples_count: {{ station.samples.count }},
+                    has_ctd: {{ station.ctd_profiles.exists|yesno:"true,false" }},
+                    has_samples: {{ station.samples.exists|yesno:"true,false" }}
+                }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        // Инициализация карты
+        const map = L.map('expedition-map');
+
+        // Добавляем слой OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Создаем кластерную группу для маркеров
+        const markersCluster = L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: true,
+            zoomToBoundsOnClick: true
+        });
+
+        // Массивы для маркеров и подписей
+        const stationMarkers = [];
+        const stationLabels = [];
+
+        // Функция определения цвета маркера
+        function getMarkerColor(station) {
+            if (station.has_ctd) return '#f4a261';  // оранжевый для станций с CTD
+            if (station.has_samples) return '#e76f51';  // красный для станций с пробами
+            return '#2a9d8f';  // зеленый для обычных станций
+        }
+
+        // Функция определения класса маркера
+        function getMarkerClass(station) {
+            if (station.has_ctd) return 'with-ctd';
+            if (station.has_samples) return 'with-samples';
+            return '';
+        }
+
+        // Создаем маркеры и подписи для всех станций
+        stations.forEach(station => {
+            // Определяем цвет и класс маркера
+            const markerColor = getMarkerColor(station);
+            const markerClass = getMarkerClass(station);
+
+            // Создание кастомного маркера
+            const markerHtml = `<div class="custom-marker ${markerClass}" style="background-color: ${markerColor};"></div>`;
+
+            const icon = L.divIcon({
+                html: markerHtml,
+                className: 'custom-marker-div',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            // Создание содержимого попапа
+            let popupContent = `
+                <div style="min-width: 200px;">
+                    <h6 style="margin: 0 0 10px 0; font-weight: 600; color: #2a9d8f;">${station.name}</h6>
+                    <div style="font-size: 0.9em; color: #555;">
+                        <strong>Координаты:</strong> ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}<br>
+                        <strong>Время:</strong> ${station.datetime}<br>
+            `;
+
+            if (station.bottom_depth) {
+                popupContent += `<strong>Глубина дна:</strong> ${station.bottom_depth} м<br>`;
+            }
+
+            if (station.secchi_depth) {
+                popupContent += `<strong>Прозрачность:</strong> ${station.secchi_depth} м<br>`;
+            }
+
+            popupContent += `<strong>Проб:</strong> ${station.samples_count}`;
+
+            if (station.has_ctd) {
+                popupContent += `<br><strong>CTD профили:</strong> есть`;
+            }
+
+            popupContent += `</div></div>`;
+
+            // Создание маркера
+            const marker = L.marker([station.lat, station.lng], {icon: icon})
+                .bindPopup(popupContent, {
+                    maxWidth: 250
+                });
+
+            // Создание подписи станции
+            const labelHtml = `<span class="station-label">${station.name}</span>`;
+
+            const labelIcon = L.divIcon({
+                html: labelHtml,
+                className: 'station-label-div',
+                iconSize: [100, 25],
+                iconAnchor: [50, 25]
+            });
+
+            const label = L.marker([station.lat - 0.003, station.lng], {
+                icon: labelIcon,
+                zIndexOffset: -100,
+                interactive: false
+            });
+
+            // Сохраняем маркеры
+            stationMarkers.push(marker);
+            stationLabels.push(label);
+        });
+
+        // Добавляем все маркеры в кластерную группу
+        stationMarkers.forEach(marker => {
+            markersCluster.addLayer(marker);
+        });
+
+        // Добавляем кластерную группу на карту
+        map.addLayer(markersCluster);
+
+        // Добавляем подписи станций на карту
+        stationLabels.forEach(label => {
+            map.addLayer(label);
+        });
+
+        // Автоматически подбираем масштаб чтобы все маркеры были видны
+        if (stations.length > 0) {
+            const group = new L.featureGroup(stationMarkers);
+            map.fitBounds(group.getBounds(), {
+                padding: [20, 20],
+                maxZoom: 12
+            });
+        }
+
+        // Добавляем легенду
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'info legend bg-white p-3 rounded shadow-sm');
+            div.innerHTML = `
+                <strong>Легенда:</strong><br>
+                <div class="d-flex align-items-center my-1">
+                    <div class="custom-marker me-2" style="background-color: #2a9d8f;"></div>
+                    <small>Станция</small>
+                </div>
+                <div class="d-flex align-items-center my-1">
+                    <div class="custom-marker with-samples me-2" style="background-color: #e76f51;"></div>
+                    <small>С пробами</small>
+                </div>
+                <div class="d-flex align-items-center my-1">
+                    <div class="custom-marker with-ctd me-2" style="background-color: #f4a261;"></div>
+                    <small>С CTD</small>
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+
+    {% endif %}
+});
+</script>
 {% endblock %}

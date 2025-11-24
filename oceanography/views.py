@@ -114,6 +114,7 @@ class ExpeditionDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         expedition = self.get_object()
         
+        # Оптимизируем запросы к базе данных
         context['stations'] = expedition.stations.all().prefetch_related('samples')
         context['samples_count'] = Sample.objects.filter(station__expedition=expedition).count()
         
