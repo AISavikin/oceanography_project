@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-t9+@b!@5mn%+wqtaakw_+7@y-+sev14w83(ccylz$=q4h@xhez
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', 'oceanography.pythonanywhere.com']
 
 
 # Application definition
