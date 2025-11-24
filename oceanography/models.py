@@ -21,7 +21,7 @@ class Expedition(models.Model):
         ordering = ['-start_date']
     
     def __str__(self):
-        return f"{self.platform} ({self.start_date.date()})"
+        return f"{self.platform} ({self.start_date})"
 
 class Station(models.Model):
     """Станции наблюдений"""

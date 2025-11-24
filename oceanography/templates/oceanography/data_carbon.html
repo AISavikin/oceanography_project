@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Данные по углероду - Система наблюдений{% endblock %}
+
+{% block content %}
+    {% include 'include/_breadcrumbs.html' %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Данные по углероду</h1>
+        <span class="badge bg-primary fs-6">Всего: {{ carbon_data.count|intcomma }}</span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover data-table">
+                    <thead>
+                        <tr>
+                            <th>Проба</th>
+                            <th>Станция</th>
+                            <th>Экспедиция</th>
+                            <th>Растворенный углерод (мгC/л)</th>
+                            <th>Неорганический углерод (мгC/л)</th>
+                            <th>Органический углерод (мгC/л)</th>
+                            <th>Взвесь общая (мг/л)</th>
+                            <th>Взвешенный углерод (мгС/м³)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for carbon in carbon_data %}
+                        <tr>
+                            <td>{{ carbon.sample.sample_id }}</td>
+                            <td>{{ carbon.sample.station.station_name }}</td>
+                            <td>
+                                <small>{{ carbon.sample.station.expedition.platform }}</small>
+                            </td>
+                            <td>
+                                {% if carbon.dtc_mg_c_l %}
+                                    {{ carbon.dtc_mg_c_l|floatformat:4 }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if carbon.dic_mg_c_l %}
+                                    {{ carbon.dic_mg_c_l|floatformat:4 }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if carbon.doc_mg_c_l %}
+                                    {{ carbon.doc_mg_c_l|floatformat:4 }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if carbon.tss_mg_l %}
+                                    {{ carbon.tss_mg_l|floatformat:4 }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if carbon.poc_mg_c_m3 %}
+                                    {{ carbon.poc_mg_c_m3|floatformat:4 }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                Данные по углероду не найдены
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav aria-label="Навигация по страницам">
+                <ul class="pagination justify-content-center mt-4">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Назад</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперед</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

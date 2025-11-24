@@ -2,8 +2,9 @@ from django.views.generic import TemplateView, ListView, DetailView, FormView, C
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from django.forms import formset_factory
-from .forms import StationForm, ExpeditionForm, StationFormSet
+from django.db.models import Count, Avg, Min, Max, Q
+from django.core.paginator import Paginator
+from .forms import ExpeditionForm, StationForm
 from .models import (
     Expedition, Station, Sample, MeteoData, CarbonData, 
     IonicCompositionData, PigmentsData, OxymetrData, 
@@ -14,25 +15,56 @@ from .models import (
 class ComingSoonView(TemplateView):
     template_name = 'oceanography/coming_soon.html'
 
-class HomeView(ListView):
-    model = Expedition
+class HomeView(TemplateView):
     template_name = 'oceanography/home.html'
-    context_object_name = 'expeditions'
-    
-    def get_queryset(self):
-        return Expedition.objects.all()[:5]
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['recent_samples'] = Sample.objects.select_related(
-            'station', 'station__expedition'
-        ).all()[:10]
         
-        # Статистика для главной страницы
+        # Основная статистика
         context['expeditions_count'] = Expedition.objects.count()
         context['stations_count'] = Station.objects.count()
         context['samples_count'] = Sample.objects.count()
         context['ctd_data_count'] = CTDData.objects.count()
+        
+        # Последние экспедиции
+        context['recent_expeditions'] = Expedition.objects.select_related().order_by('-start_date')[:5]
+        
+        # Последние станции с данными об экспедициях
+        context['recent_stations'] = Station.objects.select_related('expedition').order_by('-datetime')[:10]
+        
+        # Последние пробы
+        context['recent_samples'] = Sample.objects.select_related(
+            'station', 'station__expedition'
+        ).order_by('-datetime')[:10]
+        
+        # Статистика по типам данных
+        context['data_stats'] = {
+            'meteo': MeteoData.objects.count(),
+            'carbon': CarbonData.objects.count(),
+            'ionic': IonicCompositionData.objects.count(),
+            'pigments': PigmentsData.objects.count(),
+            'nutrients': NutrientsData.objects.count(),
+            'ph': PHMeasurement.objects.count(),
+        }
+        
+        # Последняя активность
+        latest_station = Station.objects.order_by('-datetime').first()
+        if latest_station:
+            context['latest_activity'] = {
+                'type': 'станция',
+                'name': latest_station.station_name,
+                'expedition': latest_station.expedition.platform,
+                'date': latest_station.datetime
+            }
+        else:
+            latest_expedition = Expedition.objects.order_by('-start_date').first()
+            if latest_expedition:
+                context['latest_activity'] = {
+                    'type': 'экспедиция',
+                    'name': latest_expedition.platform,
+                    'date': latest_expedition.start_date
+                }
         
         return context
 
@@ -99,11 +131,8 @@ class ExpeditionDetailView(DetailView):
         ]
         return context
 
-from django.views.generic import CreateView
-from .forms import StationForm
-
 class StationSingleCreateView(CreateView):
-    """Вариант 1: Форма для добавления одной станции"""
+    """Форма для добавления одной станции"""
     model = Station
     form_class = StationForm
     template_name = 'oceanography/station_single_create.html'
@@ -150,7 +179,7 @@ class StationSingleCreateView(CreateView):
         return context
 
 class StationMultipleCreateView(View):
-    """Вариант 2: Форма с динамическим добавлением полей для нескольких станций"""
+    """Форма с динамическим добавлением полей для нескольких станций"""
     template_name = 'oceanography/station_multiple_create.html'
     
     def get(self, request, *args, **kwargs):
@@ -158,6 +187,7 @@ class StationMultipleCreateView(View):
         expedition = get_object_or_404(Expedition, pk=expedition_id)
         
         # Создаем formset с одной дополнительной формой
+        from django.forms import formset_factory
         StationFormSet = formset_factory(StationForm, extra=1, can_delete=True)
         formset = StationFormSet(prefix='stations')
         
@@ -168,6 +198,7 @@ class StationMultipleCreateView(View):
         expedition_id = self.kwargs.get('expedition_id')
         expedition = get_object_or_404(Expedition, pk=expedition_id)
         
+        from django.forms import formset_factory
         StationFormSet = formset_factory(StationForm, extra=0, can_delete=True)
         formset = StationFormSet(request.POST, prefix='stations')
         
@@ -227,23 +258,331 @@ class StationMultipleCreateView(View):
         ]
         return context
 
-class StationFileImportView(TemplateView):
-    template_name = 'oceanography/station_file_import.html'
-    
-    def get(self, request, *args, **kwargs):
-        messages.info(request, 'Функциональность загрузки из файла будет реализована в следующем шаге')
-        return super().get(request, *args, **kwargs)
+# ============================================================================
+# ПРЕДСТАВЛЕНИЯ ДЛЯ ПРОСМОТРА ВСЕХ ДАННЫХ
+# ============================================================================
+
+class DataOverviewView(TemplateView):
+    """Обзор всех данных в системе"""
+    template_name = 'oceanography/data_overview.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        expedition_id = self.kwargs.get('expedition_id')
-        if expedition_id:
-            context['expedition'] = Expedition.objects.get(pk=expedition_id)
+        
+        # Статистика по всем основным таблицам
+        context['stats'] = {
+            'expeditions': {
+                'count': Expedition.objects.count(),
+                'recent': Expedition.objects.order_by('-start_date')[:5],
+                'total_stations': Station.objects.count(),
+            },
+            'stations': {
+                'count': Station.objects.count(),
+                'with_samples': Station.objects.filter(samples__isnull=False).distinct().count(),
+                'recent': Station.objects.select_related('expedition').order_by('-datetime')[:10],
+            },
+            'samples': {
+                'count': Sample.objects.count(),
+                'recent': Sample.objects.select_related('station', 'station__expedition').order_by('-datetime')[:10],
+            },
+            'meteo_data': {
+                'count': MeteoData.objects.count(),
+                'recent': MeteoData.objects.select_related('sample', 'sample__station', 'sample__station__expedition')[:10],
+            },
+            'carbon_data': {
+                'count': CarbonData.objects.count(),
+                'recent': CarbonData.objects.select_related('sample', 'sample__station', 'sample__station__expedition')[:10],
+            },
+            'ionic_data': {
+                'count': IonicCompositionData.objects.count(),
+                'recent': IonicCompositionData.objects.select_related('sample', 'sample__station', 'sample__station__expedition')[:10],
+            },
+            'pigments_data': {
+                'count': PigmentsData.objects.count(),
+                'recent': PigmentsData.objects.select_related('sample', 'sample__station', 'sample__station__expedition')[:10],
+            },
+            'oxymetr_data': {
+                'count': OxymetrData.objects.count(),
+                'recent': OxymetrData.objects.select_related('sample', 'sample__station', 'sample__station__expedition')[:10],
+            },
+            'nutrients_data': {
+                'count': NutrientsData.objects.count(),
+                'recent': NutrientsData.objects.select_related('sample', 'sample__station', 'sample__station__expedition')[:10],
+            },
+            'ph_measurements': {
+                'count': PHMeasurement.objects.count(),
+                'recent': PHMeasurement.objects.select_related('sample', 'sample__station', 'sample__station__expedition')[:10],
+            },
+            'probes': {
+                'count': Probe.objects.count(),
+                'recent': Probe.objects.all()[:10],
+            },
+            'ctd_data': {
+                'count': CTDData.objects.count(),
+                'stations_with_ctd': CTDData.objects.values('sample__station').distinct().count(),
+                'recent': CTDData.objects.select_related('sample', 'sample__station', 'sample__station__expedition', 'probe')[:10],
+            },
+        }
         
         context['breadcrumbs'] = [
             {'url': reverse('oceanography:home'), 'name': 'Главная'},
-            {'url': reverse('oceanography:expedition_list'), 'name': 'Экспедиции'},
-            {'url': reverse('oceanography:expedition_detail', kwargs={'pk': expedition_id}), 'name': f'Экспедиция {expedition_id}'},
-            {'url': '', 'name': 'Загрузка станций из файла'}
+            {'url': '', 'name': 'Обзор данных'}
+        ]
+        
+        return context
+
+class ExpeditionDataView(ListView):
+    """Детальный просмотр всех экспедиций"""
+    model = Expedition
+    template_name = 'oceanography/data_expeditions.html'
+    context_object_name = 'expeditions'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        return Expedition.objects.annotate(
+            stations_count=Count('stations'),
+            samples_count=Count('stations__samples')
+        ).order_by('-start_date')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Все экспедиции'}
+        ]
+        return context
+
+class StationDataView(ListView):
+    """Детальный просмотр всех станций"""
+    model = Station
+    template_name = 'oceanography/data_stations.html'
+    context_object_name = 'stations'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return Station.objects.select_related('expedition').annotate(
+            samples_count=Count('samples')
+        ).order_by('-datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Все станции'}
+        ]
+        return context
+
+class SampleDataView(ListView):
+    """Детальный просмотр всех проб"""
+    model = Sample
+    template_name = 'oceanography/data_samples.html'
+    context_object_name = 'samples'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return Sample.objects.select_related(
+            'station', 'station__expedition'
+        ).prefetch_related(
+            'meteo_data', 'carbon_data', 'ionic_data', 
+            'pigments_data', 'nutrients_data', 'ph_measurements'
+        ).order_by('-datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Все пробы'}
+        ]
+        return context
+
+class MeteoDataView(ListView):
+    """Детальный просмотр всех метеоданных"""
+    model = MeteoData
+    template_name = 'oceanography/data_meteo.html'
+    context_object_name = 'meteo_data'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return MeteoData.objects.select_related(
+            'sample', 'sample__station', 'sample__station__expedition'
+        ).order_by('-sample__datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Метеоданные'}
+        ]
+        return context
+
+class CarbonDataView(ListView):
+    """Детальный просмотр всех данных по углероду"""
+    model = CarbonData
+    template_name = 'oceanography/data_carbon.html'
+    context_object_name = 'carbon_data'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return CarbonData.objects.select_related(
+            'sample', 'sample__station', 'sample__station__expedition'
+        ).order_by('-sample__datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Данные по углероду'}
+        ]
+        return context
+
+class IonicDataView(ListView):
+    """Детальный просмотр всех данных по ионному составу"""
+    model = IonicCompositionData
+    template_name = 'oceanography/data_ionic.html'
+    context_object_name = 'ionic_data'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return IonicCompositionData.objects.select_related(
+            'sample', 'sample__station', 'sample__station__expedition'
+        ).order_by('-sample__datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Данные по ионному составу'}
+        ]
+        return context
+
+class PigmentsDataView(ListView):
+    """Детальный просмотр всех данных по пигментам"""
+    model = PigmentsData
+    template_name = 'oceanography/data_pigments.html'
+    context_object_name = 'pigments_data'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return PigmentsData.objects.select_related(
+            'sample', 'sample__station', 'sample__station__expedition'
+        ).order_by('-sample__datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Данные по пигментам'}
+        ]
+        return context
+
+class OxymetrDataView(ListView):
+    """Детальный просмотр всех данных оксиметра"""
+    model = OxymetrData
+    template_name = 'oceanography/data_oxymetr.html'
+    context_object_name = 'oxymetr_data'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return OxymetrData.objects.select_related(
+            'sample', 'sample__station', 'sample__station__expedition'
+        ).order_by('-sample__datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Данные оксиметра'}
+        ]
+        return context
+
+class NutrientsDataView(ListView):
+    """Детальный просмотр всех данных по биогенным элементам"""
+    model = NutrientsData
+    template_name = 'oceanography/data_nutrients.html'
+    context_object_name = 'nutrients_data'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return NutrientsData.objects.select_related(
+            'sample', 'sample__station', 'sample__station__expedition'
+        ).order_by('-sample__datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Данные по биогенным элементам'}
+        ]
+        return context
+
+class PHDataView(ListView):
+    """Детальный просмотр всех измерений pH"""
+    model = PHMeasurement
+    template_name = 'oceanography/data_ph.html'
+    context_object_name = 'ph_measurements'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return PHMeasurement.objects.select_related(
+            'sample', 'sample__station', 'sample__station__expedition'
+        ).order_by('-sample__datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Измерения pH'}
+        ]
+        return context
+
+class ProbeDataView(ListView):
+    """Детальный просмотр всех зондов"""
+    model = Probe
+    template_name = 'oceanography/data_probes.html'
+    context_object_name = 'probes'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return Probe.objects.annotate(
+            ctd_measurements_count=Count('ctd_measurements')
+        ).order_by('probe_name')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'Зонды'}
+        ]
+        return context
+
+class CTDDataView(ListView):
+    """Детальный просмотр всех CTD данных"""
+    model = CTDData
+    template_name = 'oceanography/data_ctd.html'
+    context_object_name = 'ctd_data'
+    paginate_by = 50
+    
+    def get_queryset(self):
+        return CTDData.objects.select_related(
+            'sample', 'sample__station', 'sample__station__expedition', 'probe'
+        ).order_by('-sample__datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
+            {'url': '', 'name': 'CTD данные'}
         ]
         return context

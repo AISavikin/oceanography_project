@@ -13,6 +13,31 @@
         .breadcrumb { background-color: transparent; padding: 0; }
         .accordion-button:not(.collapsed) { background-color: #e7f1ff; }
     </style>
+    <style>
+        .jumbotron {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .card {
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .display-4 {
+            font-weight: 300;
+        }
+        .list-group-item {
+            border: none;
+            padding: 0.75rem 0;
+        }
+        .list-group-item:first-child {
+            padding-top: 0;
+        }
+        .list-group-item:last-child {
+            padding-bottom: 0;
+        }
+        </style>
 </head>
 <body>
     <!-- Сообщения -->
@@ -61,6 +86,11 @@
                         <i class="fas fa-cog"></i> Админка
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'oceanography:data_overview' %}">
+                        <i class="fas fa-database"></i> Все данные
+                    </a>
+                </li>
             </ul>
         </div>
     </div>
@@ -70,37 +100,51 @@
         <div class="row">
             <div class="col-md-2 sidebar">
                 <div class="p-3">
-                    <h6>Данные измерений</h6>
-                    <ul class="nav nav-pills flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Метеоданные</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Данные по углероду</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Ионный состав</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Пигменты</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Данные оксиметра</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Биогенные элементы</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Измерения pH</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Данные CTD</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Зонды</a>
-                        </li>
-                    </ul>
-                </div>
+    <h6>Данные измерений</h6>
+    <ul class="nav nav-pills flex-column">
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_overview' %}">
+                <i class="fas fa-database"></i> Все данные
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_expeditions' %}">Экспедиции</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_stations' %}">Станции</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_samples' %}">Пробы</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_meteo' %}">Метеоданные</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_carbon' %}">Данные по углероду</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_ionic' %}">Ионный состав</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_pigments' %}">Пигменты</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_oxymetr' %}">Данные оксиметра</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_nutrients' %}">Биогенные элементы</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_ph' %}">Измерения pH</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_probes' %}">Зонды</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'oceanography:data_ctd' %}">Данные CTD</a>
+        </li>
+    </ul>
+</div>
             </div>
             
             <div class="col-md-10">

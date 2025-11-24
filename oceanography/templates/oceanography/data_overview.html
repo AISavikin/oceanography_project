@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Обзор данных - Система наблюдений{% endblock %}
+
+{% block content %}
+    {% include 'include/_breadcrumbs.html' %}
+
+    <div class="row">
+        <div class="col-12">
+            <h1>Обзор всех данных</h1>
+            <p class="lead">Статистика и сводная информация по всем таблицам базы данных</p>
+        </div>
+    </div>
+
+    <!-- Карточки статистики -->
+    <div class="row mt-4">
+        <div class="col-md-3 mb-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h2 class="text-primary">{{ stats.expeditions.count|intcomma }}</h2>
+                    <h5>Экспедиции</h5>
+                    <p class="text-muted">{{ stats.expeditions.total_stations|intcomma }} станций</p>
+                    <a href="{% url 'oceanography:data_expeditions' %}" class="btn btn-outline-primary btn-sm">Просмотреть все</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h2 class="text-success">{{ stats.stations.count|intcomma }}</h2>
+                    <h5>Станции</h5>
+                    <p class="text-muted">{{ stats.stations.with_samples|intcomma }} с пробами</p>
+                    <a href="{% url 'oceanography:data_stations' %}" class="btn btn-outline-success btn-sm">Просмотреть все</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h2 class="text-info">{{ stats.samples.count|intcomma }}</h2>
+                    <h5>Пробы</h5>
+                    <p class="text-muted">Всего измерений</p>
+                    <a href="{% url 'oceanography:data_samples' %}" class="btn btn-outline-info btn-sm">Просмотреть все</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <h2 class="text-warning">{{ stats.ctd_data.count|intcomma }}</h2>
+                    <h5>CTD данные</h5>
+                    <p class="text-muted">{{ stats.ctd_data.stations_with_ctd|intcomma }} станций</p>
+                    <a href="{% url 'oceanography:data_ctd' %}" class="btn btn-outline-warning btn-sm">Просмотреть все</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Детальная статистика -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Данные измерений</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Метеоданные
+                            <span class="badge bg-primary rounded-pill">{{ stats.meteo_data.count|intcomma }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Данные по углероду
+                            <span class="badge bg-primary rounded-pill">{{ stats.carbon_data.count|intcomma }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Ионный состав
+                            <span class="badge bg-primary rounded-pill">{{ stats.ionic_data.count|intcomma }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Пигменты
+                            <span class="badge bg-primary rounded-pill">{{ stats.pigments_data.count|intcomma }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Биогенные элементы
+                            <span class="badge bg-primary rounded-pill">{{ stats.nutrients_data.count|intcomma }}</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            Измерения pH
+                            <span class="badge bg-primary rounded-pill">{{ stats.ph_measurements.count|intcomma }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Последние добавленные данные</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Станции:</h6>
+                    {% for station in stats.stations.recent %}
+                    <div class="mb-2">
+                        <small>{{ station.station_name }} - {{ station.expedition.platform }} ({{ station.datetime|date:"d.m.Y H:i" }})</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">Нет данных</p>
+                    {% endfor %}
+                    
+                    <h6 class="mt-3">Пробы:</h6>
+                    {% for sample in stats.samples.recent %}
+                    <div class="mb-2">
+                        <small>Проба {{ sample.sample_id }} - {{ sample.station.station_name }} ({{ sample.datetime|date:"d.m.Y H:i" }})</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">Нет данных</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Быстрые действия -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Быстрый доступ к данным</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-2 col-sm-4">
+                            <a href="{% url 'oceanography:data_expeditions' %}" class="btn btn-outline-primary w-100">🚢 Экспедиции</a>
+                        </div>
+                        <div class="col-md-2 col-sm-4">
+                            <a href="{% url 'oceanography:data_stations' %}" class="btn btn-outline-success w-100">📍 Станции</a>
+                        </div>
+                        <div class="col-md-2 col-sm-4">
+                            <a href="{% url 'oceanography:data_samples' %}" class="btn btn-outline-info w-100">🧪 Пробы</a>
+                        </div>
+                        <div class="col-md-2 col-sm-4">
+                            <a href="{% url 'oceanography:data_ctd' %}" class="btn btn-outline-warning w-100">📡 CTD</a>
+                        </div>
+                        <div class="col-md-2 col-sm-4">
+                            <a href="{% url 'admin:oceanography_expedition_changelist' %}" class="btn btn-outline-secondary w-100">⚙️ Админка</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
