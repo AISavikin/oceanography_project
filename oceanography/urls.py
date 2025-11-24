@@ -27,4 +27,10 @@ urlpatterns = [
     path('data/ph/', PHDataView.as_view(), name='data_ph'),
     path('data/probes/', ProbeDataView.as_view(), name='data_probes'),
     path('data/ctd/', CTDDataView.as_view(), name='data_ctd'),
+
+     # CTD профили
+    path('ctd-profiles/', CTDProfileListView.as_view(), name='ctd_profile_list'),
+    path('ctd-profiles/create/', CTDProfileCreateView.as_view(), name='ctd_profile_create'),
+    path('ctd-profiles/<int:pk>/', CTDProfileDetailView.as_view(), name='ctd_profile_detail'),
+    path('stations/<int:station_id>/add-ctd-profile/', CTDProfileCreateView.as_view(), name='add_ctd_profile'),
 ]

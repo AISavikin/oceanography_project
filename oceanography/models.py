@@ -294,3 +294,73 @@ class CTDData(models.Model):
         return f"CTD {self.sample.sample_id} - {self.probe.probe_name}"
 
 
+# Добавить в конец models.py
+
+class CTDProfile(models.Model):
+    """Профиль CTD измерений"""
+    profile_id = models.AutoField(primary_key=True)
+    station = models.ForeignKey(Station, on_delete=models.CASCADE, verbose_name="Станция", related_name='ctd_profiles')
+    probe = models.ForeignKey(Probe, on_delete=models.CASCADE, verbose_name="Зонд", related_name='ctd_profiles')
+    start_datetime = models.DateTimeField(verbose_name="Время начала профилирования")
+    end_datetime = models.DateTimeField(verbose_name="Время окончания профилирования")
+    max_depth = models.DecimalField(max_digits=7, decimal_places=2, verbose_name="Максимальная глубина профиля (м)")
+    data_file = models.FileField(upload_to='ctd_profiles/', null=True, blank=True, verbose_name="Файл с данными")
+    comment = models.TextField(blank=True, verbose_name="Комментарии к профилю")
+    
+    class Meta:
+        db_table = 'ctd_profiles'
+        verbose_name = "CTD профиль"
+        verbose_name_plural = "CTD профили"
+        indexes = [
+            models.Index(fields=['station', 'start_datetime']),
+            models.Index(fields=['start_datetime']),
+        ]
+        ordering = ['station', 'start_datetime']
+    
+    def __str__(self):
+        return f"CTD профиль {self.profile_id} - {self.station.station_name} ({self.start_datetime})"
+
+class CTDMeasurement(models.Model):
+    """Измерение в рамках CTD профиля"""
+    measurement_id = models.AutoField(primary_key=True)
+    profile = models.ForeignKey(CTDProfile, on_delete=models.CASCADE, verbose_name="Профиль", related_name='measurements')
+    
+    # Временная метка и глубина
+    datetime = models.DateTimeField(verbose_name="Дата и время измерения")
+    depth_m = models.DecimalField(max_digits=7, decimal_places=2, verbose_name="Глубина (м)")
+    
+    # Основные параметры (как в существующей CTDData)
+    pressure_dbar = models.DecimalField(max_digits=7, decimal_places=2, verbose_name="Давление (dBar)")
+    temp_c = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Температура (°C)")
+    cond_ms_cm = models.DecimalField(max_digits=7, decimal_places=4, verbose_name="Электропроводность (мС/см)")
+    salinity_psu = models.DecimalField(max_digits=6, decimal_places=3, verbose_name="Соленость (PSU)")
+    
+    # Кислород
+    do_ml_l = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Кислород (мл/л)")
+    do_mg_l = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Кислород (мг/л)")
+    do_sat_percent = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True, verbose_name="Насыщение кислородом (%)")
+    
+    # Дополнительные параметры
+    chl_a_ug_l = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name="Хлорофилл-а (µg/L)")
+    turbidity_ntu = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name="Мутность (NTU)")
+    cdom_ppb = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name="CDOM (ppb)")
+    sigma_kg_m3 = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, verbose_name="Плотность (kg/m³)")
+    
+    class Meta:
+        db_table = 'ctd_measurements'
+        verbose_name = "CTD измерение"
+        verbose_name_plural = "CTD измерения"
+        indexes = [
+            models.Index(fields=['profile', 'depth_m']),
+            models.Index(fields=['profile', 'datetime']),
+        ]
+        ordering = ['profile', 'depth_m']
+    
+    @property
+    def sigma_plus_1000(self):
+        if self.sigma_kg_m3 is not None:
+            return self.sigma_kg_m3 + 1000
+        return None
+    
+    def __str__(self):
+        return f"CTD измерение {self.measurement_id} - {self.depth_m} м"

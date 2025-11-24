@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}CTD профили - Система наблюдений{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>CTD профили</h1>
+    <a href="{% url 'oceanography:ctd_profile_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Добавить профиль
+    </a>
+</div>
+
+{% if profiles %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Станция</th>
+                            <th>Экспедиция</th>
+                            <th>Зонд</th>
+                            <th>Начало</th>
+                            <th>Макс. глубина</th>
+                            <th>Измерений</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profile in profiles %}
+                        <tr>
+                            <td>{{ profile.profile_id }}</td>
+                            <td>{{ profile.station.station_name }}</td>
+                            <td>{{ profile.station.expedition.platform }}</td>
+                            <td>{{ profile.probe.probe_name }}</td>
+                            <td>{{ profile.start_datetime|date:"d.m.Y H:i" }}</td>
+                            <td>{{ profile.max_depth }} м</td>
+                            <td>{{ profile.measurements.count }}</td>
+                            <td>
+                                <a href="{% url 'oceanography:ctd_profile_detail' profile.pk %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <h4>Нет CTD профилей</h4>
+        <p>Пока не было добавлено ни одного CTD профиля.</p>
+        <a href="{% url 'oceanography:ctd_profile_create' %}" class="btn btn-primary">
+            Добавить первый профиль
+        </a>
+    </div>
+{% endif %}
+{% endblock %}

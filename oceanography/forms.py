@@ -1,5 +1,5 @@
 from django import forms
-from .models import Expedition, Station
+from .models import Expedition, Station, CTDProfile
 from django.forms import inlineformset_factory
 from django.forms import modelformset_factory
 
@@ -48,4 +48,28 @@ class ExpeditionForm(forms.ModelForm):
             'start_date': 'Дата и время начала',
             'end_date': 'Дата и время окончания',
             'area': 'Район работ',
+        }
+
+
+class CTDProfileForm(forms.ModelForm):
+    class Meta:
+        model = CTDProfile
+        fields = ['station', 'probe', 'start_datetime', 'end_datetime', 'max_depth', 'data_file', 'comment']
+        widgets = {
+            'station': forms.Select(attrs={'class': 'form-control'}),
+            'probe': forms.Select(attrs={'class': 'form-control'}),
+            'start_datetime': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'end_datetime': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'max_depth': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'data_file': forms.FileInput(attrs={'class': 'form-control'}),
+            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'station': 'Станция',
+            'probe': 'Зонд',
+            'start_datetime': 'Время начала профилирования',
+            'end_datetime': 'Время окончания профилирования',
+            'max_depth': 'Максимальная глубина (м)',
+            'data_file': 'Файл с данными',
+            'comment': 'Комментарии',
         }

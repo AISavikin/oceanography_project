@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Добавление CTD профиля - Система наблюдений{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Добавление CTD профиля</h1>
+        
+        {% if station %}
+        <div class="alert alert-info">
+            Профиль будет привязан к станции: <strong>{{ station.station_name }}</strong>
+            (Экспедиция: {{ station.expedition.platform }})
+        </div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.station.label_tag }}
+                                {{ form.station }}
+                                {% if form.station.errors %}
+                                    <div class="text-danger">{{ form.station.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.probe.label_tag }}
+                                {{ form.probe }}
+                                {% if form.probe.errors %}
+                                    <div class="text-danger">{{ form.probe.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.start_datetime.label_tag }}
+                                {{ form.start_datetime }}
+                                {% if form.start_datetime.errors %}
+                                    <div class="text-danger">{{ form.start_datetime.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.end_datetime.label_tag }}
+                                {{ form.end_datetime }}
+                                {% if form.end_datetime.errors %}
+                                    <div class="text-danger">{{ form.end_datetime.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.max_depth.label_tag }}
+                                {{ form.max_depth }}
+                                {% if form.max_depth.errors %}
+                                    <div class="text-danger">{{ form.max_depth.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.data_file.label_tag }}
+                                {{ form.data_file }}
+                                {% if form.data_file.errors %}
+                                    <div class="text-danger">{{ form.data_file.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Файл с данными профиля (формат будет определен позже)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.comment.label_tag }}
+                        {{ form.comment }}
+                        {% if form.comment.errors %}
+                            <div class="text-danger">{{ form.comment.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% if station %}{% url 'oceanography:expedition_detail' station.expedition.pk %}{% else %}{% url 'oceanography:ctd_profile_list' %}{% endif %}" 
+                           class="btn btn-secondary me-md-2">Отмена</a>
+                        <button type="submit" class="btn btn-primary">Создать профиль</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

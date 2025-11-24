@@ -4,11 +4,11 @@ from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Count, Avg, Min, Max, Q
 from django.core.paginator import Paginator
-from .forms import ExpeditionForm, StationForm
+from .forms import ExpeditionForm, StationForm, CTDProfileForm
 from .models import (
     Expedition, Station, Sample, MeteoData, CarbonData, 
     IonicCompositionData, PigmentsData, OxymetrData, 
-    NutrientsData, PHMeasurement, Probe, CTDData
+    NutrientsData, PHMeasurement, Probe, CTDData, CTDProfile
 )
 
 
@@ -585,4 +585,112 @@ class CTDDataView(ListView):
             {'url': reverse('oceanography:data_overview'), 'name': 'Обзор данных'},
             {'url': '', 'name': 'CTD данные'}
         ]
+        return context
+
+# Добавить в views.py
+
+class CTDProfileListView(ListView):
+    """Список всех CTD профилей"""
+    model = CTDProfile
+    template_name = 'oceanography/ctd_profile_list.html'
+    context_object_name = 'profiles'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        return CTDProfile.objects.select_related(
+            'station', 'station__expedition', 'probe'
+        ).prefetch_related('measurements').order_by('-start_datetime')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': '', 'name': 'CTD профили'}
+        ]
+        return context
+
+class CTDProfileDetailView(DetailView):
+    """Детальный просмотр CTD профиля"""
+    model = CTDProfile
+    template_name = 'oceanography/ctd_profile_detail.html'
+    context_object_name = 'profile'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile = self.get_object()
+        
+        # Получаем измерения профиля
+        context['measurements'] = profile.measurements.all().order_by('depth_m')
+        context['measurements_count'] = context['measurements'].count()
+        
+        # Статистика по измерениям
+        if context['measurements']:
+            context['depth_range'] = {
+                'min': context['measurements'].aggregate(Min('depth_m'))['depth_m__min'],
+                'max': context['measurements'].aggregate(Max('depth_m'))['depth_m__max']
+            }
+            context['temp_range'] = {
+                'min': context['measurements'].aggregate(Min('temp_c'))['temp_c__min'],
+                'max': context['measurements'].aggregate(Max('temp_c'))['temp_c__max']
+            }
+            context['salinity_range'] = {
+                'min': context['measurements'].aggregate(Min('salinity_psu'))['salinity_psu__min'],
+                'max': context['measurements'].aggregate(Max('salinity_psu'))['salinity_psu__max']
+            }
+        
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': reverse('oceanography:ctd_profile_list'), 'name': 'CTD профили'},
+            {'url': '', 'name': f'Профиль {profile.profile_id}'}
+        ]
+        return context
+
+class CTDProfileCreateView(CreateView):
+    """Создание нового CTD профиля"""
+    model = CTDProfile
+    form_class = CTDProfileForm
+    template_name = 'oceanography/ctd_profile_form.html'
+    
+    def get_initial(self):
+        """Установка начальных значений, если передан station_id"""
+        initial = super().get_initial()
+        station_id = self.kwargs.get('station_id')
+        if station_id:
+            initial['station'] = get_object_or_404(Station, pk=station_id)
+        return initial
+    
+    def form_valid(self, form):
+        # Базовая валидация - проверка что start_datetime раньше end_datetime
+        if form.cleaned_data['start_datetime'] > form.cleaned_data['end_datetime']:
+            form.add_error('end_datetime', 'Время окончания должно быть позже времени начала')
+            return self.form_invalid(form)
+        
+        response = super().form_valid(form)
+        messages.success(self.request, f'CTD профиль успешно создан! Файл данных можно будет обработать позже.')
+        return response
+    
+    def get_success_url(self):
+        return reverse('oceanography:ctd_profile_detail', kwargs={'pk': self.object.pk})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        station_id = self.kwargs.get('station_id')
+        
+        if station_id:
+            context['station'] = get_object_or_404(Station, pk=station_id)
+            context['breadcrumbs'] = [
+                {'url': reverse('oceanography:home'), 'name': 'Главная'},
+                {'url': reverse('oceanography:expedition_list'), 'name': 'Экспедиции'},
+                {'url': reverse('oceanography:expedition_detail', 
+                              kwargs={'pk': context['station'].expedition.pk}), 
+                 'name': f'Экспедиция {context["station"].expedition.pk}'},
+                {'url': '', 'name': 'Добавление CTD профиля'}
+            ]
+        else:
+            context['breadcrumbs'] = [
+                {'url': reverse('oceanography:home'), 'name': 'Главная'},
+                {'url': reverse('oceanography:ctd_profile_list'), 'name': 'CTD профили'},
+                {'url': '', 'name': 'Создание профиля'}
+            ]
+        
         return context
