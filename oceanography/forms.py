@@ -73,3 +73,11 @@ class CTDProfileForm(forms.ModelForm):
             'data_file': 'Файл с данными',
             'comment': 'Комментарии',
         }
+
+# Добавить в forms.py
+class MeteoDataUploadForm(forms.Form):
+    excel_file = forms.FileField(
+        label='Excel файл с метеоданными',
+        help_text='Загрузите заполненный шаблон Excel с метеоданными',
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': '.xlsx,.xls'})
+    )

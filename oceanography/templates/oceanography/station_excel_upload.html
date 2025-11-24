@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Массовое добавление станций - {{ expedition.platform }} - Система наблюдений{% endblock %}
+
+{% block content %}
+    {% include 'include/_breadcrumbs.html' %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Массовое добавление станций</h1>
+        <span class="badge bg-primary fs-6">{{ expedition.platform }}</span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-upload me-2"></i>
+                        Загрузка данных станций и проб
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="excel_file" class="form-label">Excel файл со станциями и пробами</label>
+                            <input class="form-control" type="file" name="excel_file" id="excel_file" accept=".xlsx,.xls" required>
+                            <div class="form-text">
+                                Загрузите файл в формате Excel, соответствующий шаблону.
+                            </div>
+                        </div>
+                        <button type="submit" name="action" value="upload_data" class="btn btn-primary">
+                            <i class="fas fa-upload me-1"></i> Загрузить данные
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Информация о формате -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-table me-2"></i>
+                        Формат файла
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Поле</th>
+                                    <th>Описание</th>
+                                    <th>Обязательное</th>
+                                    <th>Пример</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>station_name</code></td>
+                                    <td>Название станции</td>
+                                    <td>Да</td>
+                                    <td>СТАНЦИЯ_1</td>
+                                </tr>
+                                <tr>
+                                    <td><code>datetime</code></td>
+                                    <td>Дата и время станции</td>
+                                    <td>Да</td>
+                                    <td>2024-07-15 10:00:00</td>
+                                </tr>
+                                <tr>
+                                    <td><code>latitude</code></td>
+                                    <td>Широта</td>
+                                    <td>Да</td>
+                                    <td>55.123456</td>
+                                </tr>
+                                <tr>
+                                    <td><code>longitude</code></td>
+                                    <td>Долгота</td>
+                                    <td>Да</td>
+                                    <td>37.654321</td>
+                                </tr>
+                                <tr>
+                                    <td><code>sampling_depth_X</code></td>
+                                    <td>Горизонт отбора пробы X</td>
+                                    <td>Да для проб</td>
+                                    <td>0.0, 10.0, дно</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Инструкция по импорту
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>Особенности шаблона:</h6>
+                    <ul class="small">
+                        <li><strong>Две строки заголовков</strong> - машинные имена и человекочитаемые названия</li>
+                        <li><strong>Две пробы по умолчанию</strong> на каждую станцию</li>
+                        <li><strong>Лист "Инструкция"</strong> с подробным описанием полей</li>
+                        <li>Поля, отмеченные <code>*</code> - обязательные для заполнения</li>
+                    </ul>
+                    
+                    <div class="alert alert-warning small">
+                        <strong>Совет:</strong> Вы можете добавлять дополнительные пробы, копируя блоки из 3 колонок 
+                        (дата пробы, горизонт, комментарий) или удалять ненужные пробы.
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" name="action" value="download_template" class="btn btn-success w-100">
+                            <i class="fas fa-download me-1"></i> Скачать шаблон Excel
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Подсказки -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Подсказки
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="small mb-0">
+                        <li>Для удаления пробы - очистите поле "Горизонт отбора"</li>
+                        <li>Дата пробы по умолчанию берется из даты станции</li>
+                        <li>Примеры горизонтов: <code>0.0</code>, <code>5.0</code>, <code>10.0</code>, <code>дно</code>, <code>поверхность</code></li>
+                        <li>Шаблон содержит примеры данных - их можно заменить своими</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{% url 'oceanography:expedition_detail' expedition.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>
+            Вернуться к экспедиции
+        </a>
+    </div>
+{% endblock %}

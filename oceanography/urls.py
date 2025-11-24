@@ -10,7 +10,7 @@ urlpatterns = [
     path('expeditions/', ExpeditionListView.as_view(), name='expedition_list'),
     path('expeditions/<int:pk>/', ExpeditionDetailView.as_view(), name='expedition_detail'),
     path('expeditions/<int:expedition_id>/add-station/single/', StationSingleCreateView.as_view(), name='add_station_single'),
-    path('expeditions/<int:expedition_id>/add-station/multiple/', StationMultipleCreateView.as_view(), name='add_station_multiple'),
+    path('expeditions/<int:expedition_id>/add-stations/excel/', StationExcelUploadView.as_view(), name='add_stations_excel'),
     path('expeditions/create/', ExpeditionCreateView.as_view(), name='expedition_create'),
     
     # Просмотр всех данных
@@ -33,4 +33,5 @@ urlpatterns = [
     path('ctd-profiles/create/', CTDProfileCreateView.as_view(), name='ctd_profile_create'),
     path('ctd-profiles/<int:pk>/', CTDProfileDetailView.as_view(), name='ctd_profile_detail'),
     path('stations/<int:station_id>/add-ctd-profile/', CTDProfileCreateView.as_view(), name='add_ctd_profile'),
+    path('expeditions/<int:expedition_id>/add-meteo/excel/', MeteoExcelUploadView.as_view(), name='add_meteo_excel'),
 ]

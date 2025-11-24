@@ -1,24 +1,23 @@
 {% extends 'base.html' %}
 
-{% block title %}Добавление станции - Система наблюдений{% endblock %}
+{% block title %}Добавление станции - {{ expedition.platform }} - Система наблюдений{% endblock %}
 
 {% block content %}
     {% include 'include/_breadcrumbs.html' %}
 
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Добавление станции</h1>
+        <span class="badge bg-primary fs-6">{{ expedition.platform }}</span>
+    </div>
+
     <div class="card">
         <div class="card-header">
-            <h2 class="card-title mb-0">
-                <i class="fas fa-plus"></i> Добавление станции
-            </h2>
+            <h5 class="card-title mb-0">
+                <i class="fas fa-map-marker-alt me-2"></i>
+                Новая станция в экспедиции "{{ expedition.platform }}"
+            </h5>
         </div>
         <div class="card-body">
-            {% if expedition %}
-            <div class="alert alert-info mb-4">
-                <h5>Экспедиция: {{ expedition.platform }}</h5>
-                <p class="mb-0">Дата: {{ expedition.start_date|date:"d.m.Y" }} - {{ expedition.end_date|date:"d.m.Y" }}</p>
-            </div>
-            {% endif %}
-
             <form method="post">
                 {% csrf_token %}
                 
@@ -28,11 +27,7 @@
                             {{ form.station_name.label_tag }}
                             {{ form.station_name }}
                             {% if form.station_name.errors %}
-                                <div class="alert alert-danger mt-2">
-                                    {% for error in form.station_name.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
+                                <div class="text-danger small">{{ form.station_name.errors }}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -41,83 +36,60 @@
                             {{ form.datetime.label_tag }}
                             {{ form.datetime }}
                             {% if form.datetime.errors %}
-                                <div class="alert alert-danger mt-2">
-                                    {% for error in form.datetime.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
+                                <div class="text-danger small">{{ form.datetime.errors }}</div>
                             {% endif %}
                         </div>
                     </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             {{ form.latitude.label_tag }}
                             {{ form.latitude }}
                             {% if form.latitude.errors %}
-                                <div class="alert alert-danger mt-2">
-                                    {% for error in form.latitude.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
+                                <div class="text-danger small">{{ form.latitude.errors }}</div>
                             {% endif %}
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             {{ form.longitude.label_tag }}
                             {{ form.longitude }}
                             {% if form.longitude.errors %}
-                                <div class="alert alert-danger mt-2">
-                                    {% for error in form.longitude.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
+                                <div class="text-danger small">{{ form.longitude.errors }}</div>
                             {% endif %}
                         </div>
                     </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-2">
                         <div class="mb-3">
                             {{ form.bottom_depth.label_tag }}
                             {{ form.bottom_depth }}
-                            {% if form.bottom_depth.errors %}
-                                <div class="alert alert-danger mt-2">
-                                    {% for error in form.bottom_depth.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-2">
                         <div class="mb-3">
                             {{ form.secchi_depth.label_tag }}
                             {{ form.secchi_depth }}
-                            {% if form.secchi_depth.errors %}
-                                <div class="alert alert-danger mt-2">
-                                    {% for error in form.secchi_depth.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
 
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Добавить станцию
+                <!-- Уведомление об автоматических пробах -->
+                <div class="alert alert-info">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-info-circle me-2"></i>Автоматическое создание проб
+                    </h6>
+                    <p class="mb-0">
+                        После сохранения станции будут автоматически созданы две пробы:
+                        <strong>поверхностная (0.0 м)</strong> и <strong>придонная ("дно")</strong>.
+                        Вы сможете добавить дополнительные пробы или изменить существующие позже.
+                    </p>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-1"></i> Сохранить станцию
                     </button>
-                    <a href="{% url 'oceanography:add_station_multiple' expedition.pk %}" class="btn btn-outline-info">
-                        <i class="fas fa-layer-group"></i> Добавить несколько
-                    </a>
-                    <a href="{% url 'oceanography:expedition_detail' expedition.pk %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-times"></i> Отмена
+                    <a href="{% url 'oceanography:expedition_detail' expedition.pk %}" class="btn btn-secondary">
+                        Отмена
                     </a>
                 </div>
             </form>
