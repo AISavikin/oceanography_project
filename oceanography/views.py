@@ -653,10 +653,11 @@ class MeteoExcelUploadView(View):
         
         # Получаем пробы без метеоданных
         samples_without_meteo = Sample.objects.filter(
-            station__expedition=expedition
+            station__expedition=expedition,
+            sampling_depth='поверхность'
         ).exclude(
             meteo_data__isnull=False
-        ).select_related('station').order_by('station__station_name', 'datetime')
+        ).select_related('station').order_by('datetime')
         
         context = {
             'expedition': expedition,
@@ -689,10 +690,12 @@ class MeteoExcelUploadView(View):
         """Генерация шаблона Excel для массового добавления метеоданных"""
         # Получаем пробы без метеоданных
         samples = Sample.objects.filter(
-            station__expedition=expedition
+            station__expedition=expedition,
+            sampling_depth='поверхность'
+
         ).exclude(
             meteo_data__isnull=False
-        ).select_related('station').order_by('station__station_name', 'datetime')
+        ).select_related('station').order_by('datetime')
         
         # Создаем новую книгу Excel
         wb = openpyxl.Workbook()
@@ -770,7 +773,7 @@ class MeteoExcelUploadView(View):
                         max_length = len(str(cell.value))
                 except:
                     pass
-            adjusted_width = min((max_length + 2), 50)
+            adjusted_width = min((max_length + 5), 50)
             ws.column_dimensions[column_letter].width = adjusted_width
         
         # Автоподбор для листа инструкции
@@ -795,7 +798,7 @@ class MeteoExcelUploadView(View):
         filename = f"meteo_template_{expedition.platform}_{expedition.start_date.year}.xlsx"
         response = HttpResponse(
             buffer.getvalue(),
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
