@@ -34,4 +34,5 @@ urlpatterns = [
     path('ctd-profiles/<int:pk>/', CTDProfileDetailView.as_view(), name='ctd_profile_detail'),
     path('stations/<int:station_id>/add-ctd-profile/', CTDProfileCreateView.as_view(), name='add_ctd_profile'),
     path('expeditions/<int:expedition_id>/add-meteo/excel/', MeteoExcelUploadView.as_view(), name='add_meteo_excel'),
+    path('logs/', LogViewerView.as_view(), name='log_viewer'),
 ]

@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% load log_filters %}
+
+{% load static %}
+
+{% block title %}Просмотр логов - Oceanography Data Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Заголовок и хлебные крошки -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    {% for crumb in breadcrumbs %}
+                        {% if crumb.url %}
+                            <li class="breadcrumb-item"><a href="{{ crumb.url }}">{{ crumb.name }}</a></li>
+                        {% else %}
+                            <li class="breadcrumb-item active">{{ crumb.name }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-clipboard-list me-2"></i>Просмотр логов системы
+            </h1>
+            <p class="text-muted">Мониторинг действий пользователей и системных событий</p>
+        </div>
+    </div>
+
+    <!-- Статистика и фильтры -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                                        <i class="fas fa-file-alt text-primary fs-4"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="card-title mb-0">{{ total_count }}</h5>
+                                    <p class="text-muted mb-0">Всего записей</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                                        <i class="fas fa-filter text-success fs-4"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="card-title mb-0">{{ filtered_count }}</h5>
+                                    <p class="text-muted mb-0">Отфильтровано</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                                        <i class="fas fa-clock text-info fs-4"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="card-title mb-0">{% now "H:i" %}</h5>
+                                    <p class="text-muted mb-0">Текущее время</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Фильтры и действия</h6>
+                    
+                    <!-- Фильтр по времени -->
+                    <form method="get" class="mb-3">
+                        <div class="input-group">
+                            <select name="time_filter" class="form-select" onchange="this.form.submit()">
+                                <option value="all" {% if time_filter == 'all' %}selected{% endif %}>Вся история</option>
+                                <option value="1h" {% if time_filter == '1h' %}selected{% endif %}>Последний час</option>
+                                <option value="24h" {% if time_filter == '24h' %}selected{% endif %}>Последние 24 часа</option>
+                                <option value="7d" {% if time_filter == '7d' %}selected{% endif %}>Последние 7 дней</option>
+                            </select>
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Действия -->
+                    {% if user.is_superuser %}
+                    <form method="post" class="mb-0">
+                        {% csrf_token %}
+                        <button type="submit" name="clear_logs" class="btn btn-warning btn-sm w-100" 
+                                onclick="return confirm('Вы уверены, что хотите очистить логи? Будет создана резервная копия.')">
+                            <i class="fas fa-broom me-1"></i>Очистить логи
+                        </button>
+                        <small class="text-muted">Только для суперпользователей</small>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица логов -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>Записи логов
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if logs %}
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th width="160">Время</th>
+                                    <th width="120">Уровень</th>
+                                    <th>Пользователь</th>
+                                    <th>Действие</th>
+                                    <th>Цель</th>
+                                    <th>Детали</th>
+                                    <th width="100">Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log_entry in logs %}
+                                <tr>
+                                    <td class="text-nowrap">
+                                        <small class="text-muted">{{ log_entry|slice:":19" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if 'ERROR' in log_entry %}
+                                            <span class="badge bg-danger">ERROR</span>
+                                        {% elif 'WARNING' in log_entry %}
+                                            <span class="badge bg-warning text-dark">WARNING</span>
+                                        {% else %}
+                                            <span class="badge bg-success">INFO</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if 'USER:' in log_entry %}
+                                            {% with user_part=log_entry|split:"USER: "|last|split:" |"|first %}
+                                                <small>{{ user_part }}</small>
+                                            {% endwith %}
+                                        {% else %}
+                                            <small class="text-muted">-</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if 'ACTION:' in log_entry %}
+                                            {% with action_part=log_entry|split:"ACTION: "|last|split:" |"|first %}
+                                                <code class="text-primary">{{ action_part }}</code>
+                                            {% endwith %}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if 'TARGET:' in log_entry %}
+                                            {% with target_part=log_entry|split:"TARGET: "|last|split:" |"|first %}
+                                                <small>{{ target_part|truncatechars:50 }}</small>
+                                            {% endwith %}
+                                        {% else %}
+                                            <small class="text-muted">-</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if 'DETAILS:' in log_entry %}
+                                            {% with details_part=log_entry|split:"DETAILS: "|last|split:" |"|first %}
+                                                <small>{{ details_part|truncatechars:80 }}</small>
+                                            {% endwith %}
+                                        {% else %}
+                                            <small class="text-muted">-</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if 'STATUS: error' in log_entry %}
+                                            <span class="badge bg-danger">Ошибка</span>
+                                        {% elif 'STATUS: success' in log_entry %}
+                                            <span class="badge bg-success">Успех</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fs-1 text-muted mb-3"></i>
+                        <h5 class="text-muted">Логи не найдены</h5>
+                        <p class="text-muted">За выбранный период нет записей логов.</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <small class="text-muted">
+                                Показано {{ filtered_count }} из {{ total_count }} записей
+                                {% if time_filter != 'all' %}
+                                (фильтр: {{ time_filter }})
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{% url 'oceanography:log_viewer' %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-sync-alt me-1"></i>Обновить
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Легенда -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Легенда логов
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Типы действий:</h6>
+                            <ul class="list-unstyled">
+                                <li><code>CREATE</code> - создание новых записей</li>
+                                <li><code>UPDATE</code> - обновление существующих записей</li>
+                                <li><code>DELETE</code> - удаление записей</li>
+                                <li><code>UPLOAD</code> - загрузка файлов</li>
+                                <li><code>LOGIN/LOGOUT</code> - вход/выход пользователей</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Статусы:</h6>
+                            <ul class="list-unstyled">
+                                <li><span class="badge bg-success">Успех</span> - действие выполнено успешно</li>
+                                <li><span class="badge bg-danger">Ошибка</span> - действие завершилось ошибкой</li>
+                                <li><span class="badge bg-warning text-dark">WARNING</span> - предупреждение</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.075);
+}
+.badge {
+    font-size: 0.75em;
+}
+code {
+    font-size: 0.875em;
+    background-color: #f8f9fa;
+    padding: 0.2em 0.4em;
+    border-radius: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Авто-обновление логов каждые 30 секунд
+setTimeout(function() {
+    window.location.reload();
+}, 30000);
+
+// Подсветка строк с ошибками
+document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        if (row.textContent.includes('ERROR')) {
+            row.classList.add('table-danger');
+        } else if (row.textContent.includes('WARNING')) {
+            row.classList.add('table-warning');
+        }
+    });
+});
+</script>
+{% endblock %}

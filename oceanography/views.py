@@ -1,14 +1,14 @@
+import logging
+from .logger import user_action_logger
+from .mixins import LoggingMixin, ViewAccessLoggingMixin
 import openpyxl
 from io import BytesIO
 from django.http import HttpResponse
-from django.db import transaction
-from .forms import MeteoDataUploadForm
 from django.views.generic import TemplateView, ListView, DetailView, FormView, CreateView, View
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Count, Avg, Min, Max, Q
-from django.core.paginator import Paginator
+from django.db.models import Count, Min, Max
 from .forms import ExpeditionForm, StationForm, CTDProfileForm
 from .models import (
     Expedition, Station, Sample, MeteoData, CarbonData, 
@@ -16,11 +16,19 @@ from .models import (
     NutrientsData, PHMeasurement, Probe, CTDData, CTDProfile
 )
 
+import os
+from django.conf import settings
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.utils import timezone
+from datetime import timedelta
 
-class ComingSoonView(TemplateView):
+# Стандартный Django логгер для отладки
+logger = logging.getLogger(__name__)
+
+class ComingSoonView(ViewAccessLoggingMixin, TemplateView):
     template_name = 'oceanography/coming_soon.html'
 
-class HomeView(TemplateView):
+class HomeView(ViewAccessLoggingMixin, TemplateView):
     template_name = 'oceanography/home.html'
     
     def get_context_data(self, **kwargs):
@@ -73,7 +81,7 @@ class HomeView(TemplateView):
         
         return context
 
-class ExpeditionListView(ListView):
+class ExpeditionListView(ViewAccessLoggingMixin, ListView):
     model = Expedition
     template_name = 'oceanography/expedition_list.html'
     context_object_name = 'expeditions'
@@ -90,17 +98,27 @@ class ExpeditionListView(ListView):
         ]
         return context
 
-class ExpeditionCreateView(CreateView):
+class ExpeditionCreateView(ViewAccessLoggingMixin, LoggingMixin, CreateView):
     model = Expedition
     form_class = ExpeditionForm
     template_name = 'oceanography/expedition_form.html'
     success_url = reverse_lazy('oceanography:expedition_list')
-    
+
     def form_valid(self, form):
         response = super().form_valid(form)
+        # Логируем создание экспедиции
+        self.log_create(self.object.pk, self.object.platform)
         messages.success(self.request, f'Экспедиция "{self.object.platform}" успешно создана!')
         return response
-    
+
+    def form_invalid(self, form):
+        # Логируем ошибку создания
+        user_action_logger.log_error(
+            self.request,
+            "CREATE Expedition",
+            f"Form validation failed: {form.errors}"
+        )
+        return super().form_invalid(form)
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['breadcrumbs'] = [
@@ -110,7 +128,7 @@ class ExpeditionCreateView(CreateView):
         ]
         return context
 
-class ExpeditionDetailView(DetailView):
+class ExpeditionDetailView(ViewAccessLoggingMixin, DetailView):
     model = Expedition
     template_name = 'oceanography/expedition_detail.html'
     context_object_name = 'expedition'
@@ -137,7 +155,7 @@ class ExpeditionDetailView(DetailView):
         ]
         return context
 
-class StationSingleCreateView(CreateView):
+class StationSingleCreateView(ViewAccessLoggingMixin, LoggingMixin, CreateView):
     """Форма для добавления одной станции с автоматическим созданием двух проб"""
     model = Station
     form_class = StationForm
@@ -149,12 +167,17 @@ class StationSingleCreateView(CreateView):
         
         # Проверка уникальности даты/времени станции в экспедиции
         if Station.objects.filter(
-            expedition_id=expedition_id, 
-            datetime=form.instance.datetime
+                expedition_id=expedition_id,
+                datetime=form.instance.datetime
         ).exists():
-            form.add_error(
-                'datetime', 
-                f'Станция с датой/времением "{form.instance.datetime}" уже существует в этой экспедиции'
+            error_msg = f'Станция с датой/времением "{form.instance.datetime}" уже существует в этой экспедиции'
+            form.add_error('datetime', error_msg)
+
+            # Логируем ошибку
+            user_action_logger.log_error(
+                self.request,
+                "CREATE Station",
+                error_msg
             )
             return self.form_invalid(form)
         
@@ -174,6 +197,14 @@ class StationSingleCreateView(CreateView):
             sampling_depth='дно',
             comment='Придонная проба'
         )
+        # Логируем создание станции и проб
+        self.log_create(self.object.pk, self.object.station_name)
+        user_action_logger.log_action(
+            self.request,
+            "CREATE Samples",
+            details=f"Auto-created 2 samples for station {self.object.station_name}"
+        )
+
         
         messages.success(
             self.request, 
@@ -210,7 +241,7 @@ class StationSingleCreateView(CreateView):
 # ПРЕДСТАВЛЕНИЯ ДЛЯ ПРОСМОТРА ВСЕХ ДАННЫХ
 # ============================================================================
 
-class DataOverviewView(TemplateView):
+class DataOverviewView(ViewAccessLoggingMixin, TemplateView):
     """Обзор всех данных в системе"""
     template_name = 'oceanography/data_overview.html'
     
@@ -279,7 +310,7 @@ class DataOverviewView(TemplateView):
         
         return context
 
-class ExpeditionDataView(ListView):
+class ExpeditionDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех экспедиций"""
     model = Expedition
     template_name = 'oceanography/data_expeditions.html'
@@ -301,7 +332,7 @@ class ExpeditionDataView(ListView):
         ]
         return context
 
-class StationDataView(ListView):
+class StationDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех станций"""
     model = Station
     template_name = 'oceanography/data_stations.html'
@@ -322,7 +353,7 @@ class StationDataView(ListView):
         ]
         return context
 
-class SampleDataView(ListView):
+class SampleDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех проб"""
     model = Sample
     template_name = 'oceanography/data_samples.html'
@@ -346,7 +377,7 @@ class SampleDataView(ListView):
         ]
         return context
 
-class MeteoDataView(ListView):
+class MeteoDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех метеоданных"""
     model = MeteoData
     template_name = 'oceanography/data_meteo.html'
@@ -367,7 +398,7 @@ class MeteoDataView(ListView):
         ]
         return context
 
-class CarbonDataView(ListView):
+class CarbonDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех данных по углероду"""
     model = CarbonData
     template_name = 'oceanography/data_carbon.html'
@@ -388,7 +419,7 @@ class CarbonDataView(ListView):
         ]
         return context
 
-class IonicDataView(ListView):
+class IonicDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех данных по ионному составу"""
     model = IonicCompositionData
     template_name = 'oceanography/data_ionic.html'
@@ -409,7 +440,7 @@ class IonicDataView(ListView):
         ]
         return context
 
-class PigmentsDataView(ListView):
+class PigmentsDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех данных по пигментам"""
     model = PigmentsData
     template_name = 'oceanography/data_pigments.html'
@@ -430,7 +461,7 @@ class PigmentsDataView(ListView):
         ]
         return context
 
-class OxymetrDataView(ListView):
+class OxymetrDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех данных оксиметра"""
     model = OxymetrData
     template_name = 'oceanography/data_oxymetr.html'
@@ -451,7 +482,7 @@ class OxymetrDataView(ListView):
         ]
         return context
 
-class NutrientsDataView(ListView):
+class NutrientsDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех данных по биогенным элементам"""
     model = NutrientsData
     template_name = 'oceanography/data_nutrients.html'
@@ -472,7 +503,7 @@ class NutrientsDataView(ListView):
         ]
         return context
 
-class PHDataView(ListView):
+class PHDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех измерений pH"""
     model = PHMeasurement
     template_name = 'oceanography/data_ph.html'
@@ -493,7 +524,7 @@ class PHDataView(ListView):
         ]
         return context
 
-class ProbeDataView(ListView):
+class ProbeDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех зондов"""
     model = Probe
     template_name = 'oceanography/data_probes.html'
@@ -514,7 +545,7 @@ class ProbeDataView(ListView):
         ]
         return context
 
-class CTDDataView(ListView):
+class CTDDataView(ViewAccessLoggingMixin, ListView):
     """Детальный просмотр всех CTD данных"""
     model = CTDData
     template_name = 'oceanography/data_ctd.html'
@@ -537,7 +568,7 @@ class CTDDataView(ListView):
 
 # Добавить в views.py
 
-class CTDProfileListView(ListView):
+class CTDProfileListView(ViewAccessLoggingMixin, ListView):
     """Список всех CTD профилей"""
     model = CTDProfile
     template_name = 'oceanography/ctd_profile_list.html'
@@ -557,7 +588,7 @@ class CTDProfileListView(ListView):
         ]
         return context
 
-class CTDProfileDetailView(DetailView):
+class CTDProfileDetailView(ViewAccessLoggingMixin, DetailView):
     """Детальный просмотр CTD профиля"""
     model = CTDProfile
     template_name = 'oceanography/ctd_profile_detail.html'
@@ -593,7 +624,7 @@ class CTDProfileDetailView(DetailView):
         ]
         return context
 
-class CTDProfileCreateView(CreateView):
+class CTDProfileCreateView(ViewAccessLoggingMixin, CreateView):
     """Создание нового CTD профиля"""
     model = CTDProfile
     form_class = CTDProfileForm
@@ -643,7 +674,7 @@ class CTDProfileCreateView(CreateView):
         
         return context
 
-class MeteoExcelUploadView(View):
+class MeteoExcelUploadView(ViewAccessLoggingMixin, LoggingMixin, View):
     """Массовое добавление метеоданных через Excel"""
     template_name = 'oceanography/meteo_excel_upload.html'
     
@@ -813,6 +844,13 @@ class MeteoExcelUploadView(View):
         excel_file = request.FILES['excel_file']
         
         try:
+            # Логируем начало загрузки
+            user_action_logger.log_action(
+                request,
+                "UPLOAD Meteo Excel",
+                target=f"File: {excel_file.name}",
+                details=f"Expedition: {expedition.platform}"
+            )
             # Читаем Excel файл
             wb = openpyxl.load_workbook(excel_file)
             ws = wb.active
@@ -874,6 +912,14 @@ class MeteoExcelUploadView(View):
                 if len(errors) > 5:
                     error_msg += f" ... и еще {len(errors) - 5} ошибок"
                 messages.error(request, error_msg)
+
+                # Логируем ошибки
+                user_action_logger.log_error(
+                    request,
+                    "UPLOAD Meteo Excel",
+                    f"Errors encountered: {error_msg}"
+                )
+
             elif created_count == 0 and updated_count == 0:
                 messages.warning(request, "Не было обработано ни одной записи. Проверьте формат файла.")
                 
@@ -883,7 +929,7 @@ class MeteoExcelUploadView(View):
         return redirect('oceanography:add_meteo_excel', expedition_id=expedition.pk)
 
         
-class StationExcelUploadView(View):
+class StationExcelUploadView(ViewAccessLoggingMixin, View):
     """Массовое добавление станций и проб через Excel"""
     template_name = 'oceanography/station_excel_upload.html'
     
@@ -1195,3 +1241,81 @@ class StationExcelUploadView(View):
             messages.error(request, f"Ошибка при обработке файла: {str(e)}")
         
         return redirect('oceanography:add_stations_excel', expedition_id=expedition.pk)
+
+
+class LogViewerView(ViewAccessLoggingMixin, LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """Просмотр логов (только для администраторов)"""
+    template_name = 'oceanography/logs_viewer.html'
+
+    def test_func(self):
+        """Только staff пользователи могут просматривать логи"""
+        return self.request.user.is_staff
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        log_file = os.path.join(settings.BASE_DIR, 'logs', 'user_actions.log')
+        logs = []
+
+        try:
+            if os.path.exists(log_file):
+                with open(log_file, 'r', encoding='utf-8') as f:
+                    # Читаем последние 1000 строк
+                    lines = f.readlines()[-1000:]
+                    logs = [line.strip() for line in lines if line.strip()]
+                logs.reverse()  # Новые логи вверху
+        except Exception as e:
+            logger.error(f"Error reading log file: {e}")
+
+        # Фильтрация по времени
+        time_filter = self.request.GET.get('time_filter', 'all')
+        filtered_logs = []
+
+        if time_filter != 'all':
+            try:
+                if time_filter == '1h':
+                    cutoff_time = timezone.now() - timedelta(hours=1)
+                elif time_filter == '24h':
+                    cutoff_time = timezone.now() - timedelta(hours=24)
+                elif time_filter == '7d':
+                    cutoff_time = timezone.now() - timedelta(days=7)
+
+                cutoff_str = cutoff_time.strftime('%Y-%m-%d %H:%M:%S')
+                filtered_logs = [log for log in logs if log[:19] >= cutoff_str]
+            except:
+                filtered_logs = logs
+        else:
+            filtered_logs = logs
+
+        context['logs'] = filtered_logs
+        context['total_count'] = len(logs)
+        context['filtered_count'] = len(filtered_logs)
+        context['time_filter'] = time_filter
+        context['breadcrumbs'] = [
+            {'url': reverse('oceanography:home'), 'name': 'Главная'},
+            {'url': '', 'name': 'Просмотр логов'}
+        ]
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Очистка логов"""
+        if request.user.is_superuser and 'clear_logs' in request.POST:
+            log_file = os.path.join(settings.BASE_DIR, 'logs', 'user_actions.log')
+            try:
+                if os.path.exists(log_file):
+                    # Вместо полного удаления, создаем backup и очищаем
+                    backup_file = f"{log_file}.backup.{timezone.now().strftime('%Y%m%d_%H%M%S')}"
+                    os.rename(log_file, backup_file)
+                messages.success(request, 'Логи успешно очищены и сохранены в backup')
+            except Exception as e:
+                messages.error(request, f'Ошибка при очистке логов: {str(e)}')
+
+            # Логируем действие очистки
+            user_action_logger.log_action(
+                request,
+                "CLEAR LOGS",
+                details="User cleared application logs"
+            )
+
+        return self.get(request, *args, **kwargs)
