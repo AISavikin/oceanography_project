@@ -43,9 +43,16 @@
                                 {% if sample.pigments_data.exists %}<span class="badge bg-primary">Пигменты</span>{% endif %}
                                 {% if sample.nutrients_data.exists %}<span class="badge bg-danger">Биогены</span>{% endif %}
                                 {% if sample.ph_measurements.exists %}<span class="badge bg-secondary">pH</span>{% endif %}
+                                {% if sample.ctd_data.exists %}<span class="badge bg-secondary">CTD</span>{% endif %}
+                                {% if sample.nutrients_data.exists %}<span class="badge bg-success">Биогены</span>{% endif %}
+                                
+                                {% if sample.oxymetr_data.exists %}<span class="badge bg-primary">Оксиметр</span>{% endif %}
+
+
+
                             </td>
                             <td>
-                                <a href="#" class="btn btn-sm btn-outline-primary">
+                                <a href="{% url 'oceanography:coming_soon' %}" class="btn btn-sm btn-outline-primary">
                                     Подробнее
                                 </a>
                             </td>

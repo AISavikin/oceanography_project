@@ -36,12 +36,12 @@ class HomeView(TemplateView):
         context['recent_expeditions'] = Expedition.objects.select_related().order_by('-start_date')[:5]
         
         # Последние станции с данными об экспедициях
-        context['recent_stations'] = Station.objects.select_related('expedition').order_by('-datetime')[:10]
+        context['recent_stations'] = Station.objects.select_related('expedition').order_by('-datetime')[:5]
         
         # Последние пробы
         context['recent_samples'] = Sample.objects.select_related(
             'station', 'station__expedition'
-        ).order_by('-datetime')[:10]
+        ).order_by('-datetime')[:5]
         
         # Статистика по типам данных
         context['data_stats'] = {

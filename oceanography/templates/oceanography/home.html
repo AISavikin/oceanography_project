@@ -11,9 +11,6 @@
             <p class="lead">База данных гидрологических и гидрохимических наблюдений</p>
             <hr class="my-4">
             <p>Централизованная система для хранения и анализа данных океанографических исследований</p>
-            <a class="btn btn-primary btn-lg" href="{% url 'oceanography:data_overview' %}" role="button">
-                <i class="fas fa-database"></i> Обзор всех данных
-            </a>
         </div>
     </div>
 </div>
@@ -139,7 +136,7 @@
                         {% for station in recent_stations %}
                             <div class="list-group-item">
                                 <div class="d-flex w-100 justify-content-between">
-                                    <h6 class="mb-1">{{ station.station_name }}</h6>
+                                    <h6 class="mb-1">Станция {{ station.station_name }}</h6>
                                     <small>{{ station.datetime|date:"d.m.Y" }}</small>
                                 </div>
                                 <p class="mb-1 text-muted small">
@@ -168,54 +165,8 @@
             </div>
         </div>
     </div>
-    
-    <!-- Быстрые действия -->
+    <!-- Последние пробы -->
     <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0">⚡ Быстрые действия</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{% url 'oceanography:expedition_create' %}" class="btn btn-outline-primary">
-                        🚢 Новая экспедиция
-                    </a>
-                    {% if recent_expeditions %}
-                    <a href="{% url 'oceanography:add_station_single' recent_expeditions.0.pk %}" class="btn btn-outline-success">
-                        📍 Добавить станцию
-                    </a>
-                    {% endif %}
-                    <a href="{% url 'oceanography:data_overview' %}" class="btn btn-outline-info">
-                        📊 Обзор данных
-                    </a>
-                    <a href="{% url 'admin:index' %}" class="btn btn-outline-secondary">
-                        ⚙️ Администрирование
-                    </a>
-                </div>
-                
-                <!-- Последняя активность -->
-                {% if latest_activity %}
-                <div class="mt-4 p-3 bg-light rounded">
-                    <h6>📈 Последняя активность:</h6>
-                    <p class="mb-1">
-                        <strong>{{ latest_activity.type|capfirst }} "{{ latest_activity.name }}"</strong>
-                    </p>
-                    <small class="text-muted">
-                        {% if latest_activity.expedition %}
-                            Экспедиция: {{ latest_activity.expedition }}<br>
-                        {% endif %}
-                        {{ latest_activity.date|date:"d.m.Y H:i" }}
-                    </small>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Дополнительные разделы -->
-<div class="row mt-4">
-    <div class="col-md-6">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">🧪 Последние пробы</h5>
@@ -251,46 +202,6 @@
         </div>
     </div>
     
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">🔗 Быстрые ссылки</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-2">
-                    <div class="col-6">
-                        <a href="{% url 'oceanography:data_meteo' %}" class="btn btn-outline-danger w-100">
-                            🌤️ Метеоданные
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="{% url 'oceanography:data_carbon' %}" class="btn btn-outline-success w-100">
-                            🌿 Углерод
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="{% url 'oceanography:data_ctd' %}" class="btn btn-outline-warning w-100">
-                            📡 CTD данные
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="{% url 'oceanography:data_nutrients' %}" class="btn btn-outline-info w-100">
-                            🧪 Биогены
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="{% url 'oceanography:data_ph' %}" class="btn btn-outline-primary w-100">
-                            🧬 pH измерения
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="{% url 'oceanography:data_probes' %}" class="btn btn-outline-secondary w-100">
-                            🔍 Зонды
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
+
 {% endblock %}

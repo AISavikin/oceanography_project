@@ -78,19 +78,14 @@
                     <a class="nav-link" href="{% url 'oceanography:expedition_list' %}">Экспедиции</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Станции</a>
+                    <a class="nav-link" href="{% url 'oceanography:data_stations' %}">Станции</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'oceanography:coming_soon' %}">Пробы</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'admin:index' %}">
-                        <i class="fas fa-cog"></i> Админка
-                    </a>
+                    <a class="nav-link" href="{% url 'oceanography:data_samples' %}">Пробы</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'oceanography:data_overview' %}">
-                        <i class="fas fa-database"></i> Все данные
+                        <i class="fas fa-database"></i> Общая статистика
                     </a>
                 </li>
             </ul>
@@ -104,20 +99,7 @@
                 <div class="p-3">
     <h6>Данные измерений</h6>
     <ul class="nav nav-pills flex-column">
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'oceanography:data_overview' %}">
-                <i class="fas fa-database"></i> Все данные
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'oceanography:data_expeditions' %}">Экспедиции</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'oceanography:data_stations' %}">Станции</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{% url 'oceanography:data_samples' %}">Пробы</a>
-        </li>
+        
         <li class="nav-item">
             <a class="nav-link" href="{% url 'oceanography:data_meteo' %}">Метеоданные</a>
         </li>
